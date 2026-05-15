@@ -12,7 +12,7 @@ const createService = asyncHandler(async (req: Request, res: Response) => {
       status: "CREATED",
       statusCode: httpStatus.CREATED,
       data: result,
-    })
+    }),
   );
 });
 
@@ -24,7 +24,7 @@ const getAllServices = asyncHandler(async (req: Request, res: Response) => {
       status: "OK",
       statusCode: httpStatus.OK,
       data: result,
-    })
+    }),
   );
 });
 
@@ -36,11 +36,12 @@ const getServiceById = asyncHandler(async (req: Request, res: Response) => {
       status: "OK",
       statusCode: httpStatus.OK,
       data: result,
-    })
+    }),
   );
 });
 
 const updateService = asyncHandler(async (req: Request, res: Response) => {
+  console.log(req.body);
   const result = await serviceService.updateService(req.params.id, req.body);
   res.status(httpStatus.OK).json(
     response({
@@ -48,7 +49,7 @@ const updateService = asyncHandler(async (req: Request, res: Response) => {
       status: "OK",
       statusCode: httpStatus.OK,
       data: result,
-    })
+    }),
   );
 });
 
@@ -59,7 +60,7 @@ const deleteService = asyncHandler(async (req: Request, res: Response) => {
       message: "Service deleted successfully",
       status: "OK",
       statusCode: httpStatus.OK,
-    })
+    }),
   );
 });
 

@@ -8,7 +8,9 @@ import { sendEmail } from "../../lib/mail.service";
 const login = async (data: LoginInput) => {
   const { email, password } = data;
 
-  const user = await User.findOne({ email, isDeleted: false }).select("+password");
+  const user = await User.findOne({ email, isDeleted: false }).select(
+    "+password",
+  );
   if (!user) {
     throw new NotFoundError("User not found");
   }
@@ -24,6 +26,7 @@ const login = async (data: LoginInput) => {
       role: user.role,
       name: user.name,
       email: user.email,
+      image: user.image,
     },
     process.env.JWT_SECRET!,
     { expiresIn: "7d" },

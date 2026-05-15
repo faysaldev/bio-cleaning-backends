@@ -13,7 +13,7 @@ app.use(express.json());
 app.use(
   cors({
     origin: "*", // allow only this origin to access the API
-    methods: ["GET", "POST", "PUT", "DELETE"], // allow only these HTTP methods
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"], // allow only these HTTP methods
     allowedHeaders: ["Content-Type", "Authorization"], // allow only these headers
   }),
 );
@@ -25,7 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(compression());
 
 // Use the logging middleware for all routes
-// app.use(logRequestResponse);
+app.use(logRequestResponse);
 
 // Use the centralized routes
 app.get("/", (req: Request, res: Response) => {

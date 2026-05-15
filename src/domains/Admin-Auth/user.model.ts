@@ -22,13 +22,16 @@ const userSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true, select: false },
     role: { type: String, enum: ["admin", "user"], default: "user" },
-    image: { type: String },
-    dateOfBirth: { type: Date },
+    image: {
+      type: String,
+      default:
+        "https://res.cloudinary.com/dk3v0m35u/image/upload/q_auto/f_auto/v1778614866/profile_mthun7.png",
+    },
     isDeleted: { type: Boolean, default: false },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 userSchema.pre("save", async function (next) {
@@ -38,7 +41,9 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-userSchema.methods.isPasswordMatch = async function (password: string): Promise<boolean> {
+userSchema.methods.isPasswordMatch = async function (
+  password: string,
+): Promise<boolean> {
   return await bcrypt.compare(password, this.password!);
 };
 
