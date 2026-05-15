@@ -64,12 +64,24 @@ const logout = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
+const changePassword = asyncHandler(async (req: any, res: Response) => {
+  await authService.changePassword(req.user._id, req.body);
+  res.status(httpStatus.OK).json(
+    response({
+      message: "Password changed successfully",
+      status: "OK",
+      statusCode: httpStatus.OK,
+    })
+  );
+});
+
 const authController = {
   login,
   logout,
   register,
   forgotPassword,
   resetPassword,
+  changePassword,
 };
 
 export default authController;

@@ -115,11 +115,29 @@ const resetPassword = async (token: string, password: string) => {
   await user.save();
 };
 
+const changePassword = async (userId: string, data: any) => {
+  const { oldPassword, newPassword } = data;
+
+  const user = await User.findById(userId).select("+password");
+  if (!user) {
+    throw new NotFoundError("User not found");
+  }
+
+  const isMatch = await user.isPasswordMatch(oldPassword);
+  if (!isMatch) {
+    throw new BadRequestError("Invalid old password");
+  }
+
+  user.password = newPassword;
+  await user.save();
+};
+
 const authService = {
   login,
   register,
   forgotPassword,
   resetPassword,
+  changePassword,
 };
 
 export default authService;
