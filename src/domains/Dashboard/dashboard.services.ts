@@ -1,31 +1,75 @@
 import Booking from "../Booking/booking.model";
-import Contact from "../Contact/contact.model";
+
+const calculateChange = (current: number, previous: number) => {
+  if (previous === 0) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
+};
 
 const getStats = async () => {
-  const totalBookings = await Booking.countDocuments();
-  const confirmedBookings = await Booking.countDocuments({ status: "CONFIRMED" });
-  const completedBookings = await Booking.countDocuments({ status: "COMPLETED" });
-  
-  const revenueData = await Booking.aggregate([
-    { $match: { status: "COMPLETED" } },
-    { $group: { _id: null, totalRevenue: { $sum: "$totalAmount" } } },
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const sixtyDaysAgo = new Date(now);
+  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+  // 1. Revenue
+  const currentRevenueData = await Booking.aggregate([
+    { $match: { status: "COMPLETED", createdAt: { $gte: thirtyDaysAgo } } },
+    { $group: { _id: null, total: { $sum: "$totalAmount" } } },
   ]);
+  const prevRevenueData = await Booking.aggregate([
+    { $match: { status: "COMPLETED", createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } } },
+    { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+  ]);
+  const currentRevenue = currentRevenueData[0]?.total || 0;
+  const prevRevenue = prevRevenueData[0]?.total || 0;
 
-  const totalRevenue = revenueData.length > 0 ? revenueData[0].totalRevenue : 0;
+  // 2. Bookings (Total created)
+  const currentBookings = await Booking.countDocuments({ createdAt: { $gte: thirtyDaysAgo } });
+  const prevBookings = await Booking.countDocuments({ createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } });
 
-  // Get client list (unique emails)
+  // 3. Completed Bookings
+  const currentCompleted = await Booking.countDocuments({ status: "COMPLETED", createdAt: { $gte: thirtyDaysAgo } });
+  const prevCompleted = await Booking.countDocuments({ status: "COMPLETED", createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } });
+
+  // 4. Unique Clients
+  const currentClientsData = await Booking.distinct("customerDetails.email", { createdAt: { $gte: thirtyDaysAgo } });
+  const prevClientsData = await Booking.distinct("customerDetails.email", { createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } });
+  const currentClientsCount = currentClientsData.length;
+  const prevClientsCount = prevClientsData.length;
+
+  // 5. Latest 5 Unique Clients
   const clientList = await Booking.aggregate([
-    { $group: { _id: "$customerDetails.email", name: { $first: "$customerDetails.name" }, phone: { $first: "$customerDetails.phone" } } },
-    { $project: { _id: 0, email: "$_id", name: 1, phone: 1 } },
-    { $limit: 100 }
+    { $sort: { createdAt: -1 } },
+    { $group: { 
+        _id: "$customerDetails.email", 
+        name: { $first: "$customerDetails.name" }, 
+        phone: { $first: "$customerDetails.phone" },
+        lastBooking: { $first: "$createdAt" }
+      } 
+    },
+    { $sort: { lastBooking: -1 } },
+    { $limit: 5 },
+    { $project: { _id: 0, email: "$_id", name: 1, phone: 1 } }
   ]);
 
   return {
-    totalRevenue,
-    totalBookings,
-    confirmedBookings,
-    completedBookings,
-    totalClients: clientList.length,
+    revenue: {
+      value: currentRevenue,
+      change: calculateChange(currentRevenue, prevRevenue)
+    },
+    bookings: {
+      value: currentBookings,
+      change: calculateChange(currentBookings, prevBookings)
+    },
+    completed: {
+      value: currentCompleted,
+      change: calculateChange(currentCompleted, prevCompleted)
+    },
+    clients: {
+      value: currentClientsCount,
+      change: calculateChange(currentClientsCount, prevClientsCount)
+    },
     clientList
   };
 };
