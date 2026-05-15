@@ -18,7 +18,7 @@ export const sendEmail = async (
 
   try {
     await transporter.sendMail({
-      from: `"Bright Smile Dental Clinic" <${EMAIL_USERNAME}>`,
+      from: `"Bio Cleaning LLC" <${EMAIL_USERNAME}>`,
       to,
       subject,
       html,

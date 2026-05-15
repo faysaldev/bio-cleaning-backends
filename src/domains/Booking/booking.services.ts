@@ -1,6 +1,8 @@
 import Booking, { IBooking } from "./booking.model";
 import { CreateBookingInput } from "./booking.validation";
 import { BadRequestError, NotFoundError } from "../../lib/errors";
+import { sendEmail } from "../../lib/mail.service";
+import { bookingStatusTemplate } from "../../lib/templates/emailTemplates";
 
 const createBooking = async (data: CreateBookingInput) => {
   // Check if timeslot is already booked for that date
@@ -71,11 +73,32 @@ const getBookingById = async (id: string) => {
   return booking;
 };
 
-const updateBookingStatus = async (id: string, status: string) => {
+const updateBookingStatus = async (id: string, status: any) => {
   const booking = await Booking.findByIdAndUpdate(id, { status }, { new: true });
   if (!booking) {
     throw new NotFoundError("Booking not found");
   }
+
+  // Send email notification
+  try {
+    const emailHtml = bookingStatusTemplate({
+      name: booking.customerDetails.name,
+      status: booking.status as any,
+      date: new Date(booking.date).toLocaleDateString(),
+      time: booking.timeSlot,
+      reference: booking.reference,
+    });
+
+    await sendEmail(
+      booking.customerDetails.email,
+      `Booking Update: ${booking.reference} is now ${booking.status}`,
+      `Your booking ${booking.reference} status has been updated to ${booking.status}.`,
+      emailHtml
+    );
+  } catch (error) {
+    console.error("Failed to send booking status email:", error);
+  }
+
   return booking;
 };
 

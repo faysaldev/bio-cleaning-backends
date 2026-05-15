@@ -1,6 +1,8 @@
 import Contact, { IContact } from "./contact.model";
 import { CreateContactInput, ReplyContactInput } from "./contact.validation";
 import { NotFoundError } from "../../lib/errors";
+import { sendEmail } from "../../lib/mail.service";
+import { contactReplyTemplate } from "../../lib/templates/emailTemplates";
 
 const createContact = async (data: CreateContactInput) => {
   const contact = await Contact.create(data);
@@ -51,6 +53,25 @@ const replyToContact = async (id: string, reply: string) => {
   if (!contact) {
     throw new NotFoundError("Contact message not found");
   }
+
+  // Send email notification
+  try {
+    const emailHtml = contactReplyTemplate({
+      name: contact.fullName,
+      originalMessage: contact.message,
+      replyMessage: reply,
+    });
+
+    await sendEmail(
+      contact.email,
+      `Re: ${contact.service} - BIO Cleaning LLC`,
+      reply,
+      emailHtml
+    );
+  } catch (error) {
+    console.error("Failed to send contact reply email:", error);
+  }
+
   return contact;
 };
 

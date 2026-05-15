@@ -3,6 +3,7 @@ import httpStatus from "http-status";
 import { response } from "../../lib/response";
 import { asyncHandler } from "../../lib/errorsHandle";
 import contactService from "./contact.services";
+import { sendEmail } from "../../lib/mail.service";
 
 const createContact = asyncHandler(async (req: Request, res: Response) => {
   const result = await contactService.createContact(req.body);
@@ -12,7 +13,7 @@ const createContact = asyncHandler(async (req: Request, res: Response) => {
       status: "CREATED",
       statusCode: httpStatus.CREATED,
       data: result,
-    })
+    }),
   );
 });
 
@@ -25,19 +26,24 @@ const getAllContacts = asyncHandler(async (req: Request, res: Response) => {
       statusCode: httpStatus.OK,
       data: result.contacts,
       type: result.meta,
-    })
+    }),
   );
 });
 
 const replyToContact = asyncHandler(async (req: Request, res: Response) => {
-  const result = await contactService.replyToContact(req.params.id, req.body.reply);
+  const result = await contactService.replyToContact(
+    req.params.id,
+    req.body.reply,
+  );
+
+  console.log("🚀 ~ replyToContact ~ result:", result);
   res.status(httpStatus.OK).json(
     response({
       message: "Reply sent successfully",
       status: "OK",
       statusCode: httpStatus.OK,
       data: result,
-    })
+    }),
   );
 });
 
