@@ -1,12 +1,16 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export type BookingStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
-export type ServiceType = "RESIDENTIAL" | "COMMERCIAL" | "DEEP_CLEAN" | "MOVE_IN_OUT";
+export type ServiceType =
+  | "RESIDENTIAL"
+  | "COMMERCIAL"
+  | "DEEP_CLEAN"
+  | "MOVE_IN_OUT";
 export type Frequency = "ONE_TIME" | "WEEKLY" | "BI_WEEKLY" | "MONTHLY";
 
 export interface IBooking extends Document {
   reference: string;
-  serviceType: ServiceType;
+  serviceType: string;
   propertySize: string;
   date: Date;
   timeSlot: string;
@@ -64,7 +68,7 @@ const bookingSchema = new Schema<IBooking>(
       default: "PENDING",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Booking = mongoose.model<IBooking>("Booking", bookingSchema);
