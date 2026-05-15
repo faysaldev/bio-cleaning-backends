@@ -46,7 +46,7 @@ const deleteService = async (id: string) => {
 
 const getShortServices = async () => {
   const services = await Service.find({ isActive: true })
-    .select("tags name _id basePrice publish")
+    .select("tags name _id basePrice isActive duration description")
     .sort({ createdAt: -1 });
   return services;
 };
