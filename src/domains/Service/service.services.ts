@@ -10,7 +10,7 @@ const createService = async (data: CreateServiceInput) => {
 const getAllServices = async (query: any) => {
   const { publishedOnly = "false" } = query;
   const filter: any = {};
-  
+
   if (publishedOnly === "true") {
     filter.publish = true;
     filter.isActive = true;
@@ -44,12 +44,20 @@ const deleteService = async (id: string) => {
   return service;
 };
 
+const getShortServices = async () => {
+  const services = await Service.find({ isActive: true })
+    .select("tags name _id basePrice publish")
+    .sort({ createdAt: -1 });
+  return services;
+};
+
 const serviceService = {
   createService,
   getAllServices,
   getServiceById,
   updateService,
   deleteService,
+  getShortServices,
 };
 
 export default serviceService;

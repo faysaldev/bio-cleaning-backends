@@ -9,6 +9,7 @@ const router = Router();
 
 // Public routes
 router.get("/", serviceController.getAllServices);
+router.get("/short-details", serviceController.getShortServices);
 router.get("/:id", serviceController.getServiceById);
 
 // Admin routes

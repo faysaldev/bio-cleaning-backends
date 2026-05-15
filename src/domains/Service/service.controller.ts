@@ -64,12 +64,25 @@ const deleteService = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
+const getShortServices = asyncHandler(async (req: Request, res: Response) => {
+  const result = await serviceService.getShortServices();
+  res.status(httpStatus.OK).json(
+    response({
+      message: "Short service details retrieved successfully",
+      status: "OK",
+      statusCode: httpStatus.OK,
+      data: result,
+    }),
+  );
+});
+
 const serviceController = {
   createService,
   getAllServices,
   getServiceById,
   updateService,
   deleteService,
+  getShortServices,
 };
 
 export default serviceController;
