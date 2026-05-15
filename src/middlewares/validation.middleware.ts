@@ -1,15 +1,23 @@
 import { Request, Response, NextFunction } from "express";
-import Joi from "joi";
+import { ZodSchema, ZodError } from "zod";
 
-const validate = (schema: Joi.ObjectSchema) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const { error } = schema.validate(req.body);
-    if (error) {
-      // If validation fails, return a 400 status with the validation error message
-      return res.status(400).json({ error: error.details[0].message });
+export const validate = (schema: ZodSchema) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await schema.parseAsync(req.body);
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({
+          status: "FAIL",
+          message: "Validation Error",
+          errors: error.issues.map((err) => ({
+            path: err.path.join("."),
+            message: err.message,
+          })),
+        });
+      }
+      next(error);
     }
-    next(); // Proceed to the next middleware (controller)
   };
 };
-
-export default validate;

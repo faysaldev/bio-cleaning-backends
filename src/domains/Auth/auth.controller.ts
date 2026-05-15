@@ -32,9 +32,29 @@ const register = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
+const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+  await authService.forgotPassword(req.body.email);
+  res.status(httpStatus.OK).json(
+    response({
+      message: "Password reset link sent to email",
+      status: "OK",
+      statusCode: httpStatus.OK,
+    })
+  );
+});
+
+const resetPassword = asyncHandler(async (req: Request, res: Response) => {
+  await authService.resetPassword(req.query.token as string, req.body.password);
+  res.status(httpStatus.OK).json(
+    response({
+      message: "Password reset successful",
+      status: "OK",
+      statusCode: httpStatus.OK,
+    })
+  );
+});
+
 const logout = asyncHandler(async (req: Request, res: Response) => {
-  // In a typical JWT setup, logout is handled client-side by deleting the token.
-  // Optionally, you can blacklist the token in Redis here if implemented.
   res.status(httpStatus.OK).json(
     response({
       message: "Logout successful",
@@ -48,6 +68,8 @@ const authController = {
   login,
   logout,
   register,
+  forgotPassword,
+  resetPassword,
 };
 
 export default authController;

@@ -1,18 +1,13 @@
 import { Router } from "express";
 
 // Domain routes
-import userRoutes from "../domains/Admin-Auth/user.route";
 import authRoutes from "../domains/Auth/auth.route";
-import doctorRoutes from "../domains/Doctor/doctor.route";
-import serviceRoutes from "../domains/Service/service.route";
-import blogRoutes from "../domains/Blog/blog.route";
-import appointmentRoutes from "../domains/Appointment/appointment.route";
+import userRoutes from "../domains/Admin-Auth/user.route";
+import bookingRoutes from "../domains/Booking/booking.route";
 import contactRoutes from "../domains/Contact/contact.route";
-import testimonialRoutes from "../domains/Testimonial/testimonial.route";
-import settingRoutes from "../domains/Setting/setting.route";
-import assetRoutes from "../domains/Asset/asset.route";
+import serviceRoutes from "../domains/Service/service.route";
 import dashboardRoutes from "../domains/Dashboard/dashboard.route";
-import activityLogRoutes from "../domains/ActivityLog/activity-log.route";
+import assetRoutes from "../domains/Asset/asset.route";
 
 // Initialize the router
 const router = Router();
@@ -24,17 +19,10 @@ router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
 
 // Business domains
-router.use("/doctors", doctorRoutes);
-router.use("/services", serviceRoutes);
-router.use("/blog", blogRoutes);
-router.use("/appointments", appointmentRoutes);
+router.use("/bookings", bookingRoutes);
 router.use("/contact", contactRoutes);
-router.use("/testimonials", testimonialRoutes);
-router.use("/settings", settingRoutes);
-router.use("/assets", assetRoutes);
+router.use("/services", serviceRoutes);
 router.use("/dashboard", dashboardRoutes);
-router.use("/activity-logs", activityLogRoutes);
+router.use("/assets", assetRoutes);
 
 export default router;
-
-

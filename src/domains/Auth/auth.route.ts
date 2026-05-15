@@ -1,16 +1,14 @@
 import { Router } from "express";
 import authController from "./auth.controller";
-import { zodValidate } from "../../middlewares/validations/zod.validations";
+import { validate } from "../../middlewares/validation.middleware";
 import { loginSchema, registerSchema } from "./auth.validation";
 
 const router = Router();
 
-router.post("/login", zodValidate(loginSchema, "body"), authController.login);
-router.post(
-  "/register",
-  zodValidate(registerSchema, "body"),
-  authController.register,
-);
+router.post("/login", validate(loginSchema), authController.login);
+router.post("/register", validate(registerSchema), authController.register);
+router.post("/forgot-password", authController.forgotPassword);
+router.post("/reset-password", authController.resetPassword);
 router.post("/logout", authController.logout);
 
 export default router;
