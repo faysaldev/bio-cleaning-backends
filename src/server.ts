@@ -25,7 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(compression());
 
 // Use the logging middleware for all routes
-app.use(logRequestResponse);
+// app.use(logRequestResponse);
 
 // Use the centralized routes
 app.get("/", (req: Request, res: Response) => {
