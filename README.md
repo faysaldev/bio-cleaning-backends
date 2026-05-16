@@ -1,22 +1,20 @@
-# 🦷 Bright Smile API (Backends)
+# BIO Cleaning LLC - Backend API Infrastructure
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
-[![Socket.io](https://img.shields.io/badge/Socket.io-010101?style=for-the-badge&logo=socketdotio&logoColor=white)](https://socket.io/)
-[![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
+![BIO Cleaning LLC Banner](https://bio-cleaning-llc.vercel.app/og-image.jpg)
 
-A premium, highly-optimized, and enterprise-ready backend engine for **Bright Smile Dental Clinic**. This project follows a Domain-Driven Design (DDD) architecture, providing robust APIs for appointment management, real-time activity auditing, advanced analytics, and automated communication.
+This is the core API engine powering **BIO Cleaning LLC**, a professional, eco-friendly cleaning service platform. This backend provides a secure, scalable RESTful API built with Node.js, Express, and MongoDB to manage bookings, services, and administrative operations.
 
 ---
 
-## 🔗 Live Links & Access
+## 🚀 Live Ecosystem
+- **Production API**: [https://bio-cleaning-backends.vercel.app/](https://bio-cleaning-backends.vercel.app/)
+- **Frontend (Live)**: [https://bio-cleaning-llc.vercel.app/](https://bio-cleaning-llc.vercel.app/)
+- **Frontend Source**: [https://github.com/faysaldev/bio-cleaning-client](https://github.com/faysaldev/bio-cleaning-client)
 
-- **🌐 Live URL:** [https://bright-smile-fm.vercel.app/](https://bright-smile-fm.vercel.app/)
-- **🔐 Admin Access:** [https://bright-smile-fm.vercel.app/admin-access](https://bright-smile-fm.vercel.app/admin-access)
+---
 
-### 🔑 Admin Credentials
+## 🔐 Administrative Credentials
+For testing and management purposes, use the following admin credentials at the `/admin/login` portal:
 
 ```json
 {
@@ -29,136 +27,90 @@ A premium, highly-optimized, and enterprise-ready backend engine for **Bright Sm
 
 ---
 
-### Video Overview
-
-[![Bright Smile Video Overview](https://img.youtube.com/vi/SQETaWhGN3Y/maxresdefault.jpg)](https://www.youtube.com/watch?v=SQETaWhGN3Y)
-
----
-
-## 🚀 Key Features
-
-- **🛡️ Secure Authentication**: JWT-based auth with refresh token logic and role-based access control (RBAC).
-- **📅 Smart Appointments**: Real-time availability checking, booking management, and automated email notifications (Confirmed/Cancelled).
-- **📊 Admin Analytics**: Comprehensive dashboard providing revenue trends, patient growth, and service performance.
-- **📜 Audit Logs**: Real-time activity logging system that tracks every action performed on the platform.
-- **✉️ Communication Engine**: Automated email system for status updates and direct inquiry replies.
-- **⚡ Real-time Updates**: Socket.io integration for instant data synchronization.
-- **☁️ Asset Management**: Cloudinary-powered media uploads and management.
-- **💳 Payment Ready**: Integrated Stripe support for future billing features.
+## 🛠 Problem Solved
+BIO Cleaning LLC solves the friction in the traditional cleaning industry:
+- **Automation**: Replaces manual scheduling with a real-time booking engine.
+- **Transparency**: Provides instant quotes based on property size and service type.
+- **Efficiency**: Automates customer notifications and admin orchestration.
+- **Data-Driven**: Offers a comprehensive dashboard for tracking revenue and growth.
 
 ---
 
-## 🛠️ Tech Stack
+## 📖 Backend Features & Modules
 
-- **Core:** Node.js, Express.js, TypeScript
-- **Database:** MongoDB (Mongoose)
-- **Caching & Pub/Sub:** Redis
-- **Real-time:** Socket.io
-- **Security:** JWT, Bcrypt, CryptoJS
-- **Validation:** Zod
-- **Logging:** Winston, Winston Daily Rotate File
-- **Media:** Cloudinary, Multer
-- **Email:** Nodemailer
+### 1. Booking Engine (`/api/v1/bookings`)
+- **Automated Reference Generation**: Unique `BIO-XXXXX` tracking numbers.
+- **Availability Logic**: Prevents double-booking of time slots.
+- **Status Workflow**: Tracks lifecycle from `PENDING` -> `CONFIRMED` -> `COMPLETED`/`CANCELLED`.
 
----
+### 2. Service Management (`/api/v1/services`)
+- **Dynamic Catalog**: CRUD operations for cleaning services.
+- **Short Details API**: Optimized endpoint for high-performance frontend listing.
+- **Status Toggles**: Instantly publish/unpublish services from the client view.
 
-## 📂 Project Structure
+### 3. Admin Dashboard (`/api/v1/dashboard`)
+- **Growth Metrics**: Real-time revenue and booking stats compared to the previous 30 days.
+- **Client Analytics**: Unique client tracking and growth percentages.
+- **Recent Activity**: Live feed of incoming reservations.
 
-```bash
-src/
-├── config/             # Configuration files (DB, Socket, Redis, ENV)
-├── domains/            # Domain-Driven Modules
-│   ├── ActivityLog/    # Platform auditing & logs
-│   ├── Appointment/    # Booking & availability logic
-│   ├── Auth/           # User authentication
-│   ├── Admin-Auth/     # Admin-specific authentication
-│   ├── Blog/           # Content management (CMS)
-│   ├── Contact/        # Inquiries & Admin replies
-│   ├── Dashboard/      # Analytics & Statistics
-│   ├── Doctor/         # Medical staff management
-│   ├── Service/        # Clinic services management
-│   └── Testimonial/    # Patient feedback
-├── lib/                # Shared utilities (Mail, Response, Errors)
-├── middlewares/        # Express middlewares (Auth, Logger, File Upload)
-├── routes/             # Main route registrations
-├── server.ts           # Express app configuration
-└── index.ts            # Entry point & Server initialization
-```
+### 4. Contact & Communication (`/api/v1/contact`)
+- **Inquiry Management**: Centralized list of customer messages.
+- **Professional Reply System**: Integrated email responses sent directly to customers via Nodemailer.
 
 ---
 
-## ⚙️ Installation & Setup
+## 🛠 Tech Stack
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Language**: TypeScript
+- **Database**: MongoDB (Mongoose ODM)
+- **Validation**: Zod (Schema-level validation)
+- **Security**: JWT Authentication & Role-Based Access Control (RBAC)
+- **Email**: Nodemailer (SMTP integration)
 
-1. **Clone the repository:**
+---
 
+## 📈 Search Engine Optimization (SEO) Plan
+*Implemented on the frontend to ensure maximum visibility.*
+
+| Page | Title Tag | Meta Description |
+| :--- | :--- | :--- |
+| **Home** | Professional Eco-Friendly Cleaning | Book residential/commercial cleaning in 60s. Insured teams & eco-safe products. |
+| **Services** | Our Cleaning Packages & Pricing | Explore Deep, Residential, and Move-In/Out cleaning packages with instant pricing. |
+| **Booking** | Book Your Professional Clean | Instant online booking engine. Pick your date, time, and service in a few clicks. |
+| **Contact** | Contact BIO Cleaning LLC | Have questions or need a custom commercial quote? Our team is available 7 days a week. |
+
+---
+
+## 🛠 Local Setup & Installation
+
+1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/faysaldev/bright-smile-backends.git
-   cd bright-smile-backends
+   git clone https://github.com/faysaldev/bio-cleaning-backends.git
+   cd bio-cleaning-backends
    ```
 
-2. **Install dependencies:**
-
+2. **Install Dependencies**:
    ```bash
    pnpm install
    ```
 
-3. **Configure Environment Variables:**
-   Create a `.env` file in the root directory and add the following:
-
+3. **Environment Configuration**:
+   Create a `.env` file in the root and configure:
    ```env
    PORT=9500
-   SOCKET_PORT=6100
    DATABASE_URL=your_mongodb_url
-   JWT_SECRET=your_jwt_secret
-   JWT_REFRESH_SECRET=your_refresh_secret
-   EMAIL_USERNAME=your_gmail
-   EMAIL_PASSWORD=your_app_password
-   CLOUDINARY_CLOUD_NAME=your_name
-   CLOUDINARY_API_KEY=your_key
-   CLOUDINARY_API_SECRET=your_secret
-   STRIPE_SECRET_KEY=your_stripe_key
+   JWT_SECRET=your_secret
+   EMAIL_USERNAME=your_smtp_user
+   EMAIL_PASSWORD=your_smtp_pass
    ```
 
-4. **Run in development mode:**
-
+4. **Run Development Server**:
    ```bash
    pnpm run dev
    ```
 
-5. **Build for production:**
-   ```bash
-   pnpm run build
-   pnpm start
-   ```
-
 ---
 
-## 📖 API Documentation Overview
-
-### Core Endpoints
-
-| Method | Endpoint                          | Description                                 | Auth   |
-| :----- | :-------------------------------- | :------------------------------------------ | :----- |
-| `GET`  | `/api/v1/dashboard`               | High-level analytics & recent activity      | Admin  |
-| `GET`  | `/api/v1/activity-logs`           | Platform audit history                      | Admin  |
-| `POST` | `/api/v1/appointments`            | Book a new appointment                      | Public |
-| `PUT`  | `/api/v1/appointments/:id/status` | Confirm/Cancel appointment (triggers email) | Admin  |
-| `PUT`  | `/api/v1/contact/:id/reply`       | Send email reply to user inquiry            | Admin  |
-| `GET`  | `/api/v1/doctors`                 | Retrieve medical staff                      | Public |
-
-_For full API details, refer to the [API Documentation](bright-smile-api-docs.md)._
-
----
-
-## 📜 License
-
-This project is licensed under the [MIT License](LICENSE).
-
----
-
-## 👨‍💻 Author
-
-**Faysal Mridha**
-
-- GitHub: [@faysaldev](https://github.com/faysaldev)
-- Website: [faysalmridha.com](https://faysalmridha.com)
+## 📄 License
+This project is licensed under the **MIT License**. See the [LICENSE](./LICENSE) file for details.
