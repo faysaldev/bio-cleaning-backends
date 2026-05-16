@@ -28,6 +28,20 @@ const getAllServices = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
+const getAllServicesAdmin = asyncHandler(
+  async (req: Request, res: Response) => {
+    const result = await serviceService.getAllServicesAdmin();
+    res.status(httpStatus.OK).json(
+      response({
+        message: "Services retrieved successfully",
+        status: "OK",
+        statusCode: httpStatus.OK,
+        data: result,
+      }),
+    );
+  },
+);
+
 const getServiceById = asyncHandler(async (req: Request, res: Response) => {
   const result = await serviceService.getServiceById(req.params.id);
   res.status(httpStatus.OK).json(
@@ -83,6 +97,7 @@ const serviceController = {
   updateService,
   deleteService,
   getShortServices,
+  getAllServicesAdmin,
 };
 
 export default serviceController;
