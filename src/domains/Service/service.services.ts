@@ -32,7 +32,7 @@ const deleteService = async (id: string) => {
 
 const getShortServices = async () =>
   Service.find({ isActive: true })
-    .select("tags name _id basePrice isActive duration description pricing")
+    .select("tags name _id basePrice isActive duration description pricing scheduling image includes")
     .sort({ createdAt: -1 });
 
 const serviceService = {

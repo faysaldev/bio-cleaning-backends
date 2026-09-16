@@ -8,6 +8,7 @@ import contactRoutes from "../domains/Contact/contact.route";
 import serviceRoutes from "../domains/Service/service.route";
 import dashboardRoutes from "../domains/Dashboard/dashboard.route";
 import assetRoutes from "../domains/Asset/asset.route";
+import schedulingRoutes from "../domains/Scheduling/scheduling.route";
 
 // Initialize the router
 const router = Router();
@@ -24,5 +25,6 @@ router.use("/contact", contactRoutes);
 router.use("/services", serviceRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/assets", assetRoutes);
+router.use("/scheduling", schedulingRoutes);
 
 export default router;

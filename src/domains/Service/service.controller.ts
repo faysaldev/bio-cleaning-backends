@@ -17,7 +17,7 @@ const createService = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const getAllServices = asyncHandler(async (req: Request, res: Response) => {
-  const result = await serviceService.getAllServices(req.query);
+  const result = await serviceService.getAllServices();
   res.status(httpStatus.OK).json(
     response({
       message: "Services retrieved successfully",

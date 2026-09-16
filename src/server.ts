@@ -4,6 +4,7 @@ import compression from "compression";
 import { globalErrorHandler, notFoundHandler } from "./lib/errorsHandle";
 import cors, { CorsOptions } from "cors";
 import { CORS_ORIGINS, FRONTEND_URL } from "./config/ENV";
+import { stripeWebhookHandler } from "./domains/Payment/stripe.webhook";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -53,6 +54,12 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+app.post(
+  "/api/v1/payments/stripe/webhook",
+  express.raw({ type: "application/json", limit: "256kb" }),
+  stripeWebhookHandler,
+);
 
 app.use(express.json({ limit: "256kb" }));
 app.use(express.urlencoded({ extended: true, limit: "256kb" }));

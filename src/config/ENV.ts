@@ -17,6 +17,7 @@ export const JWT_REFRESH_SECRET: string = process.env.JWT_REFRESH_SECRET as stri
 export const EMAIL_USERNAME: string = process.env.EMAIL_USERNAME as string;
 export const EMAIL_PASSWORD: string = process.env.EMAIL_PASSWORD as string;
 export const STRIPE_SECRET_KEY: string = process.env.STRIPE_SECRET_KEY as string;
+export const STRIPE_WEBHOOK_SECRET: string | undefined = process.env.STRIPE_WEBHOOK_SECRET;
 export const FRONTEND_URL: string | undefined = process.env.FRONTEND_URL;
 export const CORS_ORIGINS: string[] = (process.env.CORS_ORIGINS || "")
   .split(",")
