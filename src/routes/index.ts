@@ -16,6 +16,10 @@ import fieldOpsRoutes from "../domains/FieldOps/fieldOps.route";
 import quoteRoutes from "../domains/Quote/quote.route";
 import invoiceRoutes from "../domains/Invoice/invoice.route";
 import paymentRoutes from "../domains/Payment/payment.route";
+import portalRoutes from "../domains/Portal/portal.route";
+import reviewRoutes from "../domains/Review/review.route";
+import retentionRoutes from "../domains/Retention/retention.route";
+
 
 // Initialize the router
 const router = Router();
@@ -40,5 +44,9 @@ router.use("/field-ops", fieldOpsRoutes);
 router.use("/quotes", quoteRoutes);
 router.use("/invoices", invoiceRoutes);
 router.use("/payments", paymentRoutes);
+router.use("/portal", portalRoutes);
+router.use("/reviews", reviewRoutes);
+router.use("/communications", retentionRoutes);
+
 
 export default router;

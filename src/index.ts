@@ -2,8 +2,13 @@ import http from "http";
 import { PORT } from "./config/ENV";
 import app from "./server";
 import connectionToDb from "./config/db";
+import { startNotificationWorker } from "./domains/Notification/notification.worker";
+import { startRetentionScheduler } from "./domains/Retention/retention.worker";
 
-connectionToDb();
+void connectionToDb().then(() => {
+  startNotificationWorker();
+  startRetentionScheduler();
+});
 
 // For local development and persistent servers
 if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {

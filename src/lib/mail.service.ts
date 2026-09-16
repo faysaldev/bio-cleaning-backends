@@ -1,31 +1,21 @@
-import nodemailer from "nodemailer";
-import { EMAIL_PASSWORD, EMAIL_USERNAME } from "../config/ENV";
-// Send Email (Using Nodemailer for verification)
+import { enqueueDelivery } from "../domains/Notification/notification.service";
+
+/**
+ * All application email is written to the notification outbox. HTTP request
+ * handlers therefore never wait on an SMTP round trip. The worker/cron
+ * processor owns retries and provider delivery.
+ */
 export const sendEmail = async (
   to: string,
   subject: string,
   text: string,
   html?: string,
 ) => {
-  const transporter = nodemailer.createTransport({
-    service: "Gmail",
-    from: EMAIL_USERNAME,
-    auth: {
-      user: EMAIL_USERNAME,
-      pass: EMAIL_PASSWORD,
-    },
+  await enqueueDelivery({
+    channel: "EMAIL",
+    recipient: to,
+    subject,
+    text,
+    html,
   });
-
-  try {
-    await transporter.sendMail({
-      from: `"Bio Cleaning LLC" <${EMAIL_USERNAME}>`,
-      to,
-      subject,
-      html,
-      text,
-    });
-  } catch (error) {
-    console.error("Error sending email", error);
-    throw new Error("Error sending email");
-  }
 };

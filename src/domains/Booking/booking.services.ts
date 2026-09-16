@@ -44,9 +44,29 @@ import { createStripeCheckoutSession } from "../Payment/stripe.service";
 import { FRONTEND_URL, JWT_SECRET } from "../../config/ENV";
 import { convertBookingLead, upsertLeadFromSource } from "../Lead/lead.services";
 import { ensureJobForBooking } from "../FieldOps/fieldOps.services";
+import { emitCustomerEvent } from "../Notification/notification.service";
 
 const ACTIVE_BOOKING_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"];
 const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
+const queueBookingNotification = async (booking: any, type: "BOOKING_RECEIVED" | "BOOKING_CONFIRMED" | "BOOKING_RESCHEDULED" | "BOOKING_CANCELLED", title: string, message: string, dedupeSuffix: string) => {
+  try {
+    await emitCustomerEvent({
+      customerId: booking.customerId ? String(booking.customerId) : undefined,
+      bookingId: String(booking._id),
+      type,
+      title,
+      message,
+      href: "/portal/bookings",
+      email: booking.customerDetails?.email,
+      phone: booking.customerDetails?.phone,
+      smsText: `BIO Cleaning: ${message}`,
+      dedupeKey: `${type.toLowerCase()}:${booking._id}:${dedupeSuffix}`,
+    });
+  } catch (error) {
+    console.error("Failed to queue booking notification", type, error);
+  }
+};
 
 const normalizeBookingDate = (value: string | Date) => {
   const raw = typeof value === "string" ? value.slice(0, 10) : value.toISOString().slice(0, 10);
@@ -884,16 +904,13 @@ const createBooking = async (
   const manageUrl = FRONTEND_URL
     ? `${FRONTEND_URL.replace(/\/$/, "")}/booking/manage?reference=${encodeURIComponent(primary.reference)}#token=${manageToken}`
     : undefined;
-  try {
-    await sendEmail(
-      data.customerDetails.email,
-      `Booking received: ${primary.reference}`,
-      `Your booking ${primary.reference} has been received. ${manageUrl ? `Manage it at ${manageUrl}` : ""}`,
-      `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#123b2a"><h2>Booking received</h2><p>Hi ${data.customerDetails.name},</p><p>We received your ${quote.service.name} booking for ${data.date} at ${labelTime(data.timeSlot)}.</p><p><strong>Reference:</strong> ${primary.reference}</p><p><strong>Estimated visit total:</strong> $${quote.priceBreakdown.total.toFixed(2)}</p>${occurrenceCount > 1 ? `<p>This is a recurring series with ${occurrenceCount} scheduled visits.</p>` : ""}${manageUrl ? `<p><a href="${manageUrl}">Manage or reschedule your booking</a></p>` : ""}<p>BIO Cleaning LLC</p></div>`,
-    );
-  } catch (error) {
-    console.error("Failed to send booking confirmation email", error);
-  }
+  await queueBookingNotification(
+    primary,
+    "BOOKING_RECEIVED",
+    `Booking received · ${primary.reference}`,
+    `We received your ${quote.service.name} booking for ${data.date} at ${labelTime(data.timeSlot)}.${occurrenceCount > 1 ? ` This series includes ${occurrenceCount} visits.` : ""}`,
+    String(primary.createdAt?.getTime?.() || Date.now()),
+  );
 
   return {
     booking: sanitizeManagedBooking(primary),
@@ -1092,22 +1109,10 @@ const updateBookingStatus = async (id: string, status: any) => {
   if (!booking) throw new NotFoundError("Booking not found");
   if (openedCapacity) void notifyWaitlistForOpening(booking);
 
-  try {
-    const emailHtml = bookingStatusTemplate({
-      name: booking.customerDetails.name,
-      status: booking.status as any,
-      date: new Date(booking.date).toLocaleDateString(),
-      time: booking.timeSlot,
-      reference: booking.reference,
-    });
-    await sendEmail(
-      booking.customerDetails.email,
-      `Booking Update: ${booking.reference} is now ${booking.status}`,
-      `Your booking ${booking.reference} status has been updated to ${booking.status}.`,
-      emailHtml,
-    );
-  } catch (error) {
-    console.error("Failed to send booking status email:", error);
+  if (booking.status === "CONFIRMED") {
+    await queueBookingNotification(booking, "BOOKING_CONFIRMED", `Booking confirmed · ${booking.reference}`, `Your ${booking.serviceType} booking ${booking.reference} is confirmed for ${booking.timeSlot}.`, String(booking.updatedAt?.getTime?.() || Date.now()));
+  } else if (booking.status === "CANCELLED") {
+    await queueBookingNotification(booking, "BOOKING_CANCELLED", `Booking cancelled · ${booking.reference}`, `Your booking ${booking.reference} has been cancelled.`, String(booking.updatedAt?.getTime?.() || Date.now()));
   }
   try { await ensureJobForBooking(booking); } catch (error) { console.error("Booking updated but field job synchronization failed:", error); }
   return booking;
@@ -1247,6 +1252,7 @@ const cancelManagedBooking = async (data: PublicCancelInput) => {
   if (!cancelledBooking) throw new NotFoundError("Booking not found");
   if (didCancel) void notifyWaitlistForOpening(cancelledBooking);
   try { await ensureJobForBooking(cancelledBooking); } catch (error) { console.error("Cancelled booking job sync failed:", error); }
+  if (didCancel) await queueBookingNotification(cancelledBooking, "BOOKING_CANCELLED", `Booking cancelled · ${cancelledBooking.reference}`, `Your booking ${cancelledBooking.reference} has been cancelled.`, String(cancelledBooking.updatedAt?.getTime?.() || Date.now()));
   return sanitizeManagedBooking(cancelledBooking);
 };
 
@@ -1330,6 +1336,78 @@ const rescheduleManagedBooking = async (data: PublicRescheduleInput) => {
     });
   }
   try { await ensureJobForBooking(rescheduledBooking); } catch (error) { console.error("Rescheduled booking job sync failed:", error); }
+  await queueBookingNotification(rescheduledBooking, "BOOKING_RESCHEDULED", `Booking rescheduled · ${rescheduledBooking.reference}`, `Your booking ${rescheduledBooking.reference} is now scheduled for ${data.date} at ${labelTime(data.timeSlot)}.`, `${data.date}:${data.timeSlot}`);
+  return sanitizeManagedBooking(rescheduledBooking);
+};
+
+const cancelCustomerBooking = async (customerId: string, bookingId: string, reason?: string) => {
+  const session = await mongoose.startSession();
+  let cancelledBooking: any;
+  let didCancel = false;
+  try {
+    await session.withTransaction(async () => {
+      const booking: any = await Booking.findOne({ _id: bookingId, customerId }).session(session);
+      if (!booking) throw new NotFoundError("Booking not found");
+      if (booking.status === "CANCELLED") { cancelledBooking = booking; return; }
+      if (booking.status === "COMPLETED") throw new BadRequestError("Completed bookings cannot be cancelled");
+      const startAt = booking.startAt || normalizeBookingDate(booking.date);
+      const hoursUntilStart = (startAt.getTime() - Date.now()) / 3_600_000;
+      const policy = booking.cancellationPolicy;
+      if (policy && hoursUntilStart < policy.noticeHours && !policy.allowLateCancellation) {
+        throw new BadRequestError(`This booking requires at least ${policy.noticeHours} hours notice to cancel online`);
+      }
+      if (policy && hoursUntilStart < policy.noticeHours && policy.allowLateCancellation) {
+        booking.cancellationFee = money(booking.totalAmount * (policy.lateCancellationFeePercent / 100));
+      }
+      await releaseCapacity(booking.capacityBucketKeys, booking.requiredStaffSnapshot, session);
+      booking.status = "CANCELLED";
+      if (reason) booking.notes = [booking.notes, `Cancellation reason: ${reason}`].filter(Boolean).join("\n");
+      await booking.save({ session });
+      cancelledBooking = booking;
+      didCancel = true;
+    });
+  } finally { await session.endSession(); }
+  if (!cancelledBooking) throw new NotFoundError("Booking not found");
+  if (didCancel) void notifyWaitlistForOpening(cancelledBooking);
+  try { await ensureJobForBooking(cancelledBooking); } catch (error) { console.error("Cancelled booking job sync failed:", error); }
+  if (didCancel) await queueBookingNotification(cancelledBooking, "BOOKING_CANCELLED", `Booking cancelled · ${cancelledBooking.reference}`, `Your booking ${cancelledBooking.reference} has been cancelled.`, String(cancelledBooking.updatedAt?.getTime?.() || Date.now()));
+  return sanitizeManagedBooking(cancelledBooking);
+};
+
+const rescheduleCustomerBooking = async (customerId: string, bookingId: string, date: string, timeSlot: string) => {
+  const session = await mongoose.startSession();
+  let rescheduledBooking: any;
+  let oldOpening: { date: Date; timeSlot: string } | undefined;
+  try {
+    await session.withTransaction(async () => {
+      const booking: any = await Booking.findOne({ _id: bookingId, customerId }).session(session);
+      if (!booking) throw new NotFoundError("Booking not found");
+      if (["CANCELLED", "COMPLETED"].includes(booking.status)) throw new BadRequestError("Only active upcoming bookings can be rescheduled");
+      const startAt = booking.startAt || normalizeBookingDate(booking.date);
+      const hoursUntilStart = (startAt.getTime() - Date.now()) / 3_600_000;
+      if (booking.cancellationPolicy && hoursUntilStart < booking.cancellationPolicy.rescheduleNoticeHours) {
+        throw new BadRequestError(`This booking requires at least ${booking.cancellationPolicy.rescheduleNoticeHours} hours notice to reschedule online`);
+      }
+      if (!booking.serviceId) throw new BadRequestError("This legacy booking must be recreated before it can use online rescheduling");
+      const quoteInput: BookingQuoteInput = { serviceId: String(booking.serviceId), property: booking.property as any, propertySize: booking.propertySize, frequency: booking.frequency, extraCodes: booking.extras.map((extra: any) => extra.code) };
+      const quote = await existingBookingSchedulingQuote(booking);
+      const oldDate = normalizeBookingDate(booking.date), oldTimeSlot = booking.timeSlot;
+      await releaseCapacity(booking.capacityBucketKeys, booking.requiredStaffSnapshot, session);
+      const slot = await evaluateSlot({ input: quoteInput, quote, date, time: timeSlot, session });
+      if (!slot.available) throw new ConflictError("The requested replacement time is no longer available");
+      await reserveCapacity(slot, quote.scheduling.requiredStaff, session);
+      booking.date = normalizeBookingDate(date); booking.timeSlot = timeSlot; booking.startAt = slot.startAt; booking.endAt = slot.endAt;
+      booking.blockedStartAt = slot.blockedStartAt; booking.blockedEndAt = slot.blockedEndAt; booking.capacityBucketKeys = slot.capacityBucketKeys;
+      booking.durationMinutes = quote.scheduling.durationMinutes; booking.requiredStaffSnapshot = quote.scheduling.requiredStaff;
+      await booking.save({ session });
+      rescheduledBooking = booking;
+      if (oldDate.toISOString().slice(0, 10) !== date || oldTimeSlot !== timeSlot) oldOpening = { date: oldDate, timeSlot: oldTimeSlot };
+    });
+  } finally { await session.endSession(); }
+  if (!rescheduledBooking) throw new NotFoundError("Booking not found");
+  if (oldOpening) void notifyWaitlistForOpening({ ...rescheduledBooking.toObject(), date: oldOpening.date, timeSlot: oldOpening.timeSlot });
+  try { await ensureJobForBooking(rescheduledBooking); } catch (error) { console.error("Rescheduled booking job sync failed:", error); }
+  await queueBookingNotification(rescheduledBooking, "BOOKING_RESCHEDULED", `Booking rescheduled · ${rescheduledBooking.reference}`, `Your booking ${rescheduledBooking.reference} is now scheduled for ${date} at ${labelTime(timeSlot)}.`, `${date}:${timeSlot}`);
   return sanitizeManagedBooking(rescheduledBooking);
 };
 
@@ -1415,6 +1493,8 @@ const bookingService = {
   getManagedBooking,
   cancelManagedBooking,
   rescheduleManagedBooking,
+  cancelCustomerBooking,
+  rescheduleCustomerBooking,
   startManagedPayment,
 };
 

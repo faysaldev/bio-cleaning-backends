@@ -59,3 +59,14 @@ export const CLOUDINARY_API_SECRET: string | undefined =
   process.env.CLOUDINARY_API_SECRET;
 export const CRYPTO_SECRET_KEY: string | undefined =
   process.env.CRYPTO_SECRET_KEY;
+
+export const PORTAL_SESSION_DAYS = positiveNumber(process.env.PORTAL_SESSION_DAYS, 30);
+export const PORTAL_MAGIC_LINK_MINUTES = positiveNumber(process.env.PORTAL_MAGIC_LINK_MINUTES, 20);
+export const NOTIFICATION_WORKER_INTERVAL_MS = positiveNumber(process.env.NOTIFICATION_WORKER_INTERVAL_MS, 5000, 1000);
+export const NOTIFICATION_MAX_ATTEMPTS = positiveNumber(process.env.NOTIFICATION_MAX_ATTEMPTS, 5);
+export const RETENTION_SWEEP_INTERVAL_MS = positiveNumber(process.env.RETENTION_SWEEP_INTERVAL_MS, 5 * 60 * 1000, 60 * 1000);
+export const COMMUNICATIONS_CRON_SECRET: string | undefined = process.env.COMMUNICATIONS_CRON_SECRET;
+export const SMS_PROVIDER = (process.env.SMS_PROVIDER || "disabled").toLowerCase();
+export const SMS_WEBHOOK_URL: string | undefined = process.env.SMS_WEBHOOK_URL;
+export const SMS_WEBHOOK_TOKEN: string | undefined = process.env.SMS_WEBHOOK_TOKEN;
+export const PUBLIC_REVIEW_URL: string | undefined = process.env.PUBLIC_REVIEW_URL;

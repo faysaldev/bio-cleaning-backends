@@ -12,6 +12,7 @@ import { formatDateInZone, formatTimeInZone, minutesFromTime } from "../Scheduli
 import { getCapacityBucketKeys, getSchedulingSettings } from "../Scheduling/scheduling.services";
 import type { RoleType } from "../../config/roles";
 import { ensureInvoiceForCompletedJob } from "../Invoice/invoice.services";
+import { emitCustomerEvent } from "../Notification/notification.service";
 
 const ACTIVE_JOB_STATUSES: JobStatus[] = ["SCHEDULED", "EN_ROUTE", "IN_PROGRESS", "PAUSED", "ISSUE"];
 const managementRoles = new Set(["owner", "admin", "manager", "dispatcher", "support", "read_only"]);
@@ -371,6 +372,26 @@ const updateStatus = async (jobId: string, nextStatus: JobStatus, userId: string
   }
   if (["EN_ROUTE", "IN_PROGRESS", "PAUSED", "ISSUE"].includes(nextStatus)) {
     await Booking.updateOne({ _id: job.bookingId, status: "PENDING" }, { $set: { status: "CONFIRMED" } });
+  }
+  if (nextStatus === "EN_ROUTE" || nextStatus === "COMPLETED") {
+    try {
+      const booking: any = await Booking.findById(job.bookingId).lean();
+      if (booking) {
+        await emitCustomerEvent({
+          customerId: booking.customerId ? String(booking.customerId) : undefined,
+          bookingId: String(booking._id),
+          type: nextStatus === "EN_ROUTE" ? "CLEANER_ON_WAY" : "JOB_COMPLETED",
+          title: nextStatus === "EN_ROUTE" ? "Your cleaning team is on the way" : "Your cleaning is complete",
+          message: nextStatus === "EN_ROUTE"
+            ? `Your BIO Cleaning team is on the way for booking ${booking.reference}.`
+            : `Your ${booking.serviceType} visit ${booking.reference} is complete. Thank you for choosing BIO Cleaning.`,
+          href: "/portal/bookings",
+          email: booking.customerDetails?.email,
+          phone: booking.customerDetails?.phone,
+          dedupeKey: `${nextStatus === "EN_ROUTE" ? "cleaner-on-way" : "job-completed"}:${job._id}`,
+        });
+      }
+    } catch (error) { console.error("Field status changed but customer notification failed:", error); }
   }
   return getJob(jobId);
 };

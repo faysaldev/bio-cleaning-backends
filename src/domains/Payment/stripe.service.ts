@@ -9,6 +9,7 @@ import PaymentTransaction from "./paymentTransaction.model";
 import RecurringBilling from "./recurringBilling.model";
 import StripeEvent from "./stripeEvent.model";
 import { money } from "../Finance/finance.utils";
+import { emitCustomerEvent } from "../Notification/notification.service";
 
 const encodeForm = (values: Record<string, string | number | boolean | undefined>) => {
   const body = new URLSearchParams();
@@ -98,6 +99,27 @@ export const verifyStripeSignature=(rawBody:Buffer,signatureHeader?:string)=>{if
 
 const storeStripeCustomer=async(customerId:any,stripeCustomerId?:string)=>{if(customerId&&stripeCustomerId)await Customer.findByIdAndUpdate(customerId,{$set:{stripeCustomerId}});};
 
+const queuePaymentReceipt = async (tx: any) => {
+  if (!tx?.customerId || tx?.status !== "SUCCEEDED" || tx?.type !== "PAYMENT") return;
+  try {
+    const customer: any = await Customer.findById(tx.customerId).lean();
+    const booking: any = tx.bookingId ? await Booking.findById(tx.bookingId).select("reference").lean() : null;
+    const amount = Number(tx.amount || 0).toFixed(2);
+    await emitCustomerEvent({
+      customerId: String(tx.customerId),
+      bookingId: tx.bookingId ? String(tx.bookingId) : undefined,
+      invoiceId: tx.invoiceId ? String(tx.invoiceId) : undefined,
+      type: "PAYMENT_RECEIPT",
+      title: `Payment received · ${tx.currency} ${amount}`,
+      message: `We received your ${tx.currency} ${amount} payment${booking?.reference ? ` for booking ${booking.reference}` : ""}. Your receipt is available in the customer portal.`,
+      href: "/portal/payments",
+      email: customer?.email,
+      phone: customer?.phone,
+      dedupeKey: `payment-receipt:${tx._id}`,
+    });
+  } catch (error) { console.error("Payment processed but receipt notification failed", error); }
+};
+
 export const processStripeEvent=async(event:any)=>{
   if(!event?.id) return;
   let record:any;
@@ -106,7 +128,7 @@ export const processStripeEvent=async(event:any)=>{
     const object:any=event.data?.object;
     if(event.type.startsWith("checkout.session.")){
       const txId=object?.metadata?.transactionId;
-      if(txId){const tx:any=await PaymentTransaction.findById(txId);if(tx){tx.checkoutSessionId=object.id;tx.paymentIntentId=typeof object.payment_intent==="string"?object.payment_intent:object.payment_intent?.id;tx.stripeCustomerId=typeof object.customer==="string"?object.customer:object.customer?.id;if(["checkout.session.completed","checkout.session.async_payment_succeeded"].includes(event.type)&&(object.payment_status==="paid"||event.type.endsWith("succeeded"))){tx.status="SUCCEEDED";tx.processedAt=new Date();}else if(["checkout.session.async_payment_failed","checkout.session.expired"].includes(event.type)){tx.status="FAILED";tx.failureMessage=`Stripe session ${event.type}`;}await tx.save();await storeStripeCustomer(tx.customerId,tx.stripeCustomerId);if(tx.invoiceId)await refreshInvoiceFinancials(String(tx.invoiceId));if(tx.purpose==="DEPOSIT"){const filter=tx.recurrenceGroupId?{recurrenceGroupId:tx.recurrenceGroupId}:{_id:tx.bookingId};await Booking.updateMany(filter,{$set:{"payment.status":tx.status==="SUCCEEDED"?"PAID":tx.status==="FAILED"?"FAILED":"PENDING","payment.checkoutSessionId":object.id,"payment.paidAt":tx.status==="SUCCEEDED"?new Date():undefined},$unset:{"payment.checkoutUrl":""}});}}
+      if(txId){const tx:any=await PaymentTransaction.findById(txId);if(tx){tx.checkoutSessionId=object.id;tx.paymentIntentId=typeof object.payment_intent==="string"?object.payment_intent:object.payment_intent?.id;tx.stripeCustomerId=typeof object.customer==="string"?object.customer:object.customer?.id;if(["checkout.session.completed","checkout.session.async_payment_succeeded"].includes(event.type)&&(object.payment_status==="paid"||event.type.endsWith("succeeded"))){tx.status="SUCCEEDED";tx.processedAt=new Date();}else if(["checkout.session.async_payment_failed","checkout.session.expired"].includes(event.type)){tx.status="FAILED";tx.failureMessage=`Stripe session ${event.type}`;}await tx.save();await storeStripeCustomer(tx.customerId,tx.stripeCustomerId);if(tx.invoiceId)await refreshInvoiceFinancials(String(tx.invoiceId));if(tx.status==="SUCCEEDED")await queuePaymentReceipt(tx);if(tx.purpose==="DEPOSIT"){const filter=tx.recurrenceGroupId?{recurrenceGroupId:tx.recurrenceGroupId}:{_id:tx.bookingId};await Booking.updateMany(filter,{$set:{"payment.status":tx.status==="SUCCEEDED"?"PAID":tx.status==="FAILED"?"FAILED":"PENDING","payment.checkoutSessionId":object.id,"payment.paidAt":tx.status==="SUCCEEDED"?new Date():undefined},$unset:{"payment.checkoutUrl":""}});}}
       } else {
         // Compatibility for deposit Checkout Sessions created before the finance
         // ledger was introduced. Those sessions only carried booking metadata.
@@ -126,7 +148,7 @@ export const processStripeEvent=async(event:any)=>{
     else if(event.type==="customer.subscription.deleted"){const sid=object.id;await RecurringBilling.findOneAndUpdate({stripeSubscriptionId:sid},{$set:{status:"CANCELED",canceledAt:new Date()}});}
     else if(event.type==="invoice.paid"){
       const sid=typeof object.subscription==="string"?object.subscription:object.subscription?.id || object.parent?.subscription_details?.subscription;
-      if(sid){let recurring:any=await RecurringBilling.findOne({stripeSubscriptionId:sid});if(!recurring){try{const subscription:any=await stripeRequest(`/v1/subscriptions/${encodeURIComponent(sid)}`,{method:"GET"});const recurringId=subscription?.metadata?.recurringBillingId;if(recurringId){recurring=await RecurringBilling.findById(recurringId);if(recurring){recurring.stripeSubscriptionId=sid;recurring.stripeCustomerId=typeof object.customer==="string"?object.customer:object.customer?.id;recurring.status="ACTIVE";recurring.startedAt=recurring.startedAt||new Date();await recurring.save();await storeStripeCustomer(recurring.customerId,recurring.stripeCustomerId);}}}catch(error){console.error("Could not resolve recurring billing from Stripe subscription",sid,error);}}if(recurring){const amount=money(Number(object.amount_paid||0)/100);let invoice:any=await Invoice.findOne({recurrenceGroupId:recurring.recurrenceGroupId,status:{$in:["OPEN","PARTIALLY_PAID"]}}).sort({issuedAt:1});const tx:any=await PaymentTransaction.findOneAndUpdate({providerInvoiceId:object.id},{$setOnInsert:{type:"PAYMENT",purpose:"SUBSCRIPTION",provider:"STRIPE",status:"SUCCEEDED",amount,currency:String(object.currency||recurring.currency).toUpperCase(),invoiceId:invoice?._id,bookingId:invoice?.bookingId,bookingIds:invoice?[invoice.bookingId]:[],customerId:recurring.customerId,recurrenceGroupId:recurring.recurrenceGroupId,recurringBillingId:recurring._id,providerInvoiceId:object.id,stripeCustomerId:typeof object.customer==="string"?object.customer:object.customer?.id,subscriptionId:sid,receiptUrl:object.hosted_invoice_url,processedAt:new Date()}},{upsert:true,new:true,setDefaultsOnInsert:true});if(invoice){tx.allocations=[{bookingId:invoice.bookingId,invoiceId:invoice._id,amount:Math.min(amount,invoice.amountDue)}];await tx.save();invoice.stripeHostedInvoiceUrl=object.hosted_invoice_url;await invoice.save();await refreshInvoiceFinancials(String(invoice._id));}recurring.lastStripeInvoiceId=object.id;recurring.paymentsProcessed=await PaymentTransaction.countDocuments({recurringBillingId:recurring._id,purpose:"SUBSCRIPTION",type:"PAYMENT",status:"SUCCEEDED"});await recurring.save();if(recurring.maxPayments&&recurring.paymentsProcessed>=recurring.maxPayments&&recurring.status==="ACTIVE"){await cancelStripeSubscription(recurring);}}}
+      if(sid){let recurring:any=await RecurringBilling.findOne({stripeSubscriptionId:sid});if(!recurring){try{const subscription:any=await stripeRequest(`/v1/subscriptions/${encodeURIComponent(sid)}`,{method:"GET"});const recurringId=subscription?.metadata?.recurringBillingId;if(recurringId){recurring=await RecurringBilling.findById(recurringId);if(recurring){recurring.stripeSubscriptionId=sid;recurring.stripeCustomerId=typeof object.customer==="string"?object.customer:object.customer?.id;recurring.status="ACTIVE";recurring.startedAt=recurring.startedAt||new Date();await recurring.save();await storeStripeCustomer(recurring.customerId,recurring.stripeCustomerId);}}}catch(error){console.error("Could not resolve recurring billing from Stripe subscription",sid,error);}}if(recurring){const amount=money(Number(object.amount_paid||0)/100);let invoice:any=await Invoice.findOne({recurrenceGroupId:recurring.recurrenceGroupId,status:{$in:["OPEN","PARTIALLY_PAID"]}}).sort({issuedAt:1});const tx:any=await PaymentTransaction.findOneAndUpdate({providerInvoiceId:object.id},{$setOnInsert:{type:"PAYMENT",purpose:"SUBSCRIPTION",provider:"STRIPE",status:"SUCCEEDED",amount,currency:String(object.currency||recurring.currency).toUpperCase(),invoiceId:invoice?._id,bookingId:invoice?.bookingId,bookingIds:invoice?[invoice.bookingId]:[],customerId:recurring.customerId,recurrenceGroupId:recurring.recurrenceGroupId,recurringBillingId:recurring._id,providerInvoiceId:object.id,stripeCustomerId:typeof object.customer==="string"?object.customer:object.customer?.id,subscriptionId:sid,receiptUrl:object.hosted_invoice_url,processedAt:new Date()}},{upsert:true,new:true,setDefaultsOnInsert:true});if(invoice){tx.allocations=[{bookingId:invoice.bookingId,invoiceId:invoice._id,amount:Math.min(amount,invoice.amountDue)}];await tx.save();await queuePaymentReceipt(tx);invoice.stripeHostedInvoiceUrl=object.hosted_invoice_url;await invoice.save();await refreshInvoiceFinancials(String(invoice._id));}recurring.lastStripeInvoiceId=object.id;recurring.paymentsProcessed=await PaymentTransaction.countDocuments({recurringBillingId:recurring._id,purpose:"SUBSCRIPTION",type:"PAYMENT",status:"SUCCEEDED"});await recurring.save();if(recurring.maxPayments&&recurring.paymentsProcessed>=recurring.maxPayments&&recurring.status==="ACTIVE"){await cancelStripeSubscription(recurring);}}}
     }
     record.status="PROCESSED";record.processedAt=new Date();record.failureMessage=undefined;await record.save();
   }catch(e:any){record.status="FAILED";record.failureMessage=e?.message||"Stripe event failed";await record.save();throw e;}
