@@ -20,6 +20,7 @@ export interface INotificationDelivery extends Document {
   lastError?: string;
   createdAt: Date;
   updatedAt: Date;
+  expiresAt: Date;
 }
 
 const schema = new Schema<INotificationDelivery>(
@@ -38,10 +39,12 @@ const schema = new Schema<INotificationDelivery>(
     lockedAt: { type: Date, index: true },
     sentAt: { type: Date },
     lastError: { type: String, maxlength: 4000 },
+    expiresAt: { type: Date, default: () => new Date(Date.now() + 90 * 86400000) },
   },
   { timestamps: true },
 );
 
 schema.index({ status: 1, nextAttemptAt: 1, createdAt: 1 });
+schema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 const NotificationDelivery = mongoose.model<INotificationDelivery>("NotificationDelivery", schema);
 export default NotificationDelivery;

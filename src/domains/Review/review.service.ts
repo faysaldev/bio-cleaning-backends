@@ -78,7 +78,7 @@ const getPublicReview = async (token: string) => {
   };
 };
 
-const submitPublicReview = async (token: string, rating: number, comment?: string) => {
+const submitPublicReview = async (token: string, rating: number, comment?: string, publishConsent = false) => {
   const request: any = await ReviewRequest.findOne({ tokenHash: hashToken(token) }).select("+tokenHash");
   if (!request) throw new NotFoundError("Review link is invalid");
   if (request.expiresAt <= new Date()) throw new BadRequestError("This review link has expired");
@@ -86,6 +86,7 @@ const submitPublicReview = async (token: string, rating: number, comment?: strin
   const booking: any = await Booking.findById(request.bookingId).select("reference").lean();
   request.rating = rating;
   request.comment = comment;
+  request.publishConsent = Boolean(publishConsent && comment?.trim());
   request.status = "SUBMITTED";
   request.submittedAt = new Date();
   await request.save();
@@ -96,6 +97,35 @@ const submitPublicReview = async (token: string, rating: number, comment?: strin
   const settings: any = await RetentionSettings.getSingleton();
   const redirectUrl = rating >= settings.publicReviewThreshold ? (request.publicReviewUrl || settings.publicReviewUrl || PUBLIC_REVIEW_URL) : undefined;
   return { submitted: true, redirectUrl };
+};
+
+
+const listPublicTestimonials = async () => {
+  const rows: any[] = await ReviewRequest.find({
+    status: "SUBMITTED",
+    publishConsent: true,
+    rating: { $exists: true },
+    comment: { $exists: true, $ne: "" },
+  })
+    .populate("customerId", "name")
+    .populate("bookingId", "serviceType")
+    .sort({ submittedAt: -1 })
+    .limit(24)
+    .lean();
+
+  return rows.map((row: any) => {
+    const fullName = typeof row.customerId?.name === "string" ? row.customerId.name.trim() : "";
+    const firstName = fullName.split(/\s+/).filter(Boolean)[0] || "Verified customer";
+    return {
+      id: String(row._id),
+      name: firstName,
+      service: row.bookingId?.serviceType || "Cleaning service",
+      rating: row.rating,
+      comment: row.comment,
+      submittedAt: row.submittedAt,
+      verified: true,
+    };
+  });
 };
 
 const listAdminReviews = async (query: any = {}) => {
@@ -110,4 +140,4 @@ const listAdminReviews = async (query: any = {}) => {
   return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
 };
 
-export default { createReviewRequestForBooking, getPublicReview, submitPublicReview, listAdminReviews };
+export default { createReviewRequestForBooking, getPublicReview, submitPublicReview, listPublicTestimonials, listAdminReviews };

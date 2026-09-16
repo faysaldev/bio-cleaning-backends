@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 import mongoose from "mongoose";
 import httpStatus from "http-status";
 import { AppError, ErrorResponse } from "./errors";
+import { reportError } from "./errorReporter";
 
 const isDevelopment = process.env.NODE_ENV === "development";
 
@@ -17,7 +18,8 @@ const normalizeError = (error: unknown): AppError => {
 
   // Zod validation error
   if (error instanceof ZodError) {
-    const errors = error.issues.map((issue) => ({
+    const zodError = error as any;
+    const errors = zodError.issues.map((issue: any) => ({
       field: String(issue.path.join(".")),
       message: issue.message,
     }));
@@ -26,7 +28,8 @@ const normalizeError = (error: unknown): AppError => {
 
   // Mongoose validation error
   if (error instanceof mongoose.Error.ValidationError) {
-    const errors = Object.values(error.errors).map((e) => ({
+    const validationError = error as any;
+    const errors = Object.values(validationError.errors as Record<string, any>).map((e: any) => ({
       field: e.path,
       message: e.message,
     }));
@@ -35,7 +38,8 @@ const normalizeError = (error: unknown): AppError => {
 
   // Mongoose CastError (invalid ObjectId)
   if (error instanceof mongoose.Error.CastError) {
-    return new AppError(`Invalid ${error.path}: ${error.value}`, httpStatus.BAD_REQUEST);
+    const castError = error as any;
+    return new AppError(`Invalid ${castError.path}: ${castError.value}`, httpStatus.BAD_REQUEST);
   }
 
   // MongoDB duplicate key error
@@ -113,8 +117,12 @@ export const globalErrorHandler = (
       method: req.method,
     });
   } else if (!error.isOperational) {
-    // Log non-operational errors in production (programming errors)
-    console.error("CRITICAL ERROR:", error);
+    void reportError({
+      error,
+      requestId: (req as Request & { requestId?: string }).requestId,
+      path: req.originalUrl,
+      method: req.method,
+    });
   }
 
   const response = formatErrorResponse(error);

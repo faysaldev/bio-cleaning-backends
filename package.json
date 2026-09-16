@@ -14,7 +14,13 @@
     "team:bootstrap-owner": "node ./dist/scripts/bootstrap-owner.js",
     "team:bootstrap-owner:dev": "ts-node ./src/scripts/bootstrap-owner.ts",
     "finance:backfill": "node ./dist/scripts/backfill-finance.js",
-    "finance:backfill:dev": "ts-node ./src/scripts/backfill-finance.ts"
+    "finance:backfill:dev": "ts-node ./src/scripts/backfill-finance.ts",
+    "typecheck": "tsc --noEmit",
+    "test:api:smoke": "node ./scripts/regression-api.mjs",
+    "backup:mongodb": "node ./scripts/backup-mongo.mjs",
+    "services:backfill-slugs": "node ./dist/scripts/backfill-service-slugs.js",
+    "services:backfill-slugs:dev": "ts-node ./src/scripts/backfill-service-slugs.ts",
+    "restore:mongodb": "node ./scripts/restore-mongo.mjs"
   },
   "keywords": [],
   "author": "Faysal Mridha",

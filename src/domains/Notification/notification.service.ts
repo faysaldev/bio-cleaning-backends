@@ -3,6 +3,7 @@ import NotificationDelivery, { NotificationChannel } from "./notificationDeliver
 import Customer from "../Customer/customer.model";
 import { FRONTEND_URL } from "../../config/ENV";
 import RetentionSettings from "../Retention/retentionSettings.model";
+import { getRedis } from "../../config/redis";
 
 export const portalUrl = (path = "") => {
   if (!FRONTEND_URL) return undefined;
@@ -22,7 +23,7 @@ type QueueDeliveryInput = {
 export const enqueueDelivery = async (input: QueueDeliveryInput) => {
   if (!input.recipient?.trim()) return null;
   try {
-    return await NotificationDelivery.create({
+    const delivery = await NotificationDelivery.create({
       notificationId: input.notificationId,
       channel: input.channel,
       recipient: input.recipient.trim(),
@@ -33,6 +34,9 @@ export const enqueueDelivery = async (input: QueueDeliveryInput) => {
       status: "QUEUED",
       nextAttemptAt: new Date(),
     });
+    const redis = await getRedis();
+    if (redis) void redis.multi().lpush("queue:notifications", String(delivery._id)).ltrim("queue:notifications", 0, 9999).exec().catch(() => undefined);
+    return delivery;
   } catch (error: any) {
     if (error?.code === 11000 && input.dedupeKey) {
       return NotificationDelivery.findOne({ dedupeKey: input.dedupeKey });

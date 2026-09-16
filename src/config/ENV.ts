@@ -71,3 +71,11 @@ export const SMS_WEBHOOK_URL: string | undefined = process.env.SMS_WEBHOOK_URL;
 export const SMS_WEBHOOK_TOKEN: string | undefined = process.env.SMS_WEBHOOK_TOKEN;
 export const PUBLIC_REVIEW_URL: string | undefined = process.env.PUBLIC_REVIEW_URL;
 export const WEBSITE_PREVIEW_TTL_MINUTES = positiveNumber(process.env.WEBSITE_PREVIEW_TTL_MINUTES, 30, 5);
+
+export const AUDIT_LOG_RETENTION_DAYS = positiveNumber(process.env.AUDIT_LOG_RETENTION_DAYS, 180, 7);
+export const MEDIA_WORKER_INTERVAL_MS = positiveNumber(process.env.MEDIA_WORKER_INTERVAL_MS, 10_000, 1_000);
+export const ERROR_REPORTING_WEBHOOK_URL: string | undefined = process.env.ERROR_REPORTING_WEBHOOK_URL;
+export const BACKUP_RETENTION_DAYS = positiveNumber(process.env.BACKUP_RETENTION_DAYS, 14, 1);
+export const HEALTH_SECRET: string | undefined = process.env.HEALTH_SECRET;
+export const APP_RELEASE: string = process.env.APP_RELEASE || process.env.VERCEL_GIT_COMMIT_SHA || "development";
+export const CSP_REPORT_URI: string | undefined = process.env.CSP_REPORT_URI;

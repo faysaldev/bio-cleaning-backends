@@ -14,7 +14,7 @@ const createContact = async (data: CreateContactInput) => {
       name: contact.fullName,
       email: contact.email,
       phone: contact.phone,
-      source: "CONTACT",
+      source: data.leadSource || "CONTACT",
       referenceId: String(contact._id),
       requestedServiceName: contact.service,
       message: contact.message,

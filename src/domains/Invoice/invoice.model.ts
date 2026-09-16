@@ -82,6 +82,7 @@ const invoiceSchema = new Schema<IInvoice>(
 invoiceSchema.index({ status: 1, dueAt: 1 });
 invoiceSchema.index({ customerId: 1, issuedAt: -1 });
 invoiceSchema.index({ recurrenceGroupId: 1, issuedAt: 1 });
+invoiceSchema.index({ issuedAt: 1, status: 1 });
 
 const Invoice = mongoose.model<IInvoice>("Invoice", invoiceSchema);
 export default Invoice;

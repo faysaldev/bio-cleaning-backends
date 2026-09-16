@@ -20,6 +20,7 @@ export const LEAD_SOURCES = [
   "REFERRAL",
   "IMPORT",
   "ONLINE_BOOKING",
+  "CAREERS",
 ] as const;
 export type LeadSource = (typeof LEAD_SOURCES)[number];
 

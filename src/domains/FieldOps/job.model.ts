@@ -143,6 +143,7 @@ const jobSchema = new Schema<IJob>(
 
 jobSchema.index({ assignedStaffIds: 1, scheduledStart: 1, scheduledEnd: 1, status: 1 });
 jobSchema.index({ crewId: 1, scheduledStart: 1, scheduledEnd: 1, status: 1 });
+jobSchema.index({ status: 1, scheduledStart: 1, scheduledEnd: 1 });
 
 const Job = mongoose.model<IJob>("Job", jobSchema);
 export default Job;

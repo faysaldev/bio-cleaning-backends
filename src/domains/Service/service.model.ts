@@ -68,6 +68,7 @@ export interface IServiceScheduling {
 
 export interface IService extends Document {
   name: string;
+  slug?: string;
   description: string;
   basePrice: number;
   includes: string[];
@@ -147,6 +148,7 @@ const defaultFrequencyDiscounts = () =>
 const serviceSchema = new Schema<IService>(
   {
     name: { type: String, required: true, trim: true },
+    slug: { type: String, trim: true, lowercase: true, unique: true, sparse: true, index: true },
     description: { type: String, required: true, trim: true },
     basePrice: { type: Number, required: true, min: 0 },
     includes: { type: [String], default: [] },

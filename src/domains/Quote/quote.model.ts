@@ -151,6 +151,8 @@ const quoteSchema = new Schema<IQuote>(
 );
 
 quoteSchema.index({ status: 1, expiresAt: 1 });
+quoteSchema.index({ status: 1, createdAt: 1 });
+quoteSchema.index({ serviceId: 1, status: 1, createdAt: -1 });
 quoteSchema.index({ customerId: 1, createdAt: -1 });
 quoteSchema.index({ leadId: 1, createdAt: -1 });
 

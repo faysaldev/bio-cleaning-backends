@@ -6,6 +6,7 @@ import {
   REDIS_PORT,
   REDIS_URL,
 } from "./ENV";
+import logger from "../lib/logger";
 
 const hasRedisConfig = Boolean(REDIS_URL || REDIS_HOST);
 
@@ -37,7 +38,7 @@ export const getRedis = async (): Promise<Redis | null> => {
     if (redis.status !== "ready") return null;
     return redis;
   } catch (error) {
-    console.warn("Redis unavailable; falling back to in-memory rate limiting.");
+    logger.warn("redis_unavailable", { message: error instanceof Error ? error.message : String(error) });
     return null;
   }
 };

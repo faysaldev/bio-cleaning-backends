@@ -1,10 +1,7 @@
-import winston, { Logform } from "winston";
+import winston from "winston";
 import "winston-daily-rotate-file";
 
-const logFormat = winston.format.printf(({ level, message }) => {
-  return `${level}: ${message}`;
-});
-
+const production = process.env.NODE_ENV === "production";
 const fileTransport = new winston.transports.DailyRotateFile({
   filename: "logs/server-%DATE%.log",
   datePattern: "YYYY-MM-DD",
@@ -14,24 +11,15 @@ const fileTransport = new winston.transports.DailyRotateFile({
   level: "info",
 });
 
-const transports: winston.transport[] = [
-  new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    ),
-  }),
-];
-
-// Add file transport only if not on Vercel
-if (!process.env.VERCEL) {
-  transports.push(fileTransport);
-}
+const transports: winston.transport[] = [new winston.transports.Console()];
+if (!process.env.VERCEL && !process.env.CLOUD_RUN_JOB) transports.push(fileTransport);
 
 const logger = winston.createLogger({
-  level: "info",
-  format: logFormat,
+  level: process.env.LOG_LEVEL || "info",
+  defaultMeta: { service: "bio-cleaning-api", release: process.env.APP_RELEASE || process.env.VERCEL_GIT_COMMIT_SHA || "development" },
+  format: production
+    ? winston.format.combine(winston.format.timestamp(), winston.format.errors({ stack: true }), winston.format.json())
+    : winston.format.combine(winston.format.timestamp(), winston.format.colorize(), winston.format.simple()),
   transports,
 });
-
 export default logger;

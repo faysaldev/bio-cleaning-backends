@@ -20,6 +20,8 @@ import portalRoutes from "../domains/Portal/portal.route";
 import reviewRoutes from "../domains/Review/review.route";
 import retentionRoutes from "../domains/Retention/retention.route";
 import websiteRoutes from "../domains/Website/website.route";
+import reportingRoutes from "../domains/Reporting/reporting.route";
+import auditRoutes from "../domains/Audit/audit.route";
 
 
 // Initialize the router
@@ -49,6 +51,8 @@ router.use("/portal", portalRoutes);
 router.use("/reviews", reviewRoutes);
 router.use("/communications", retentionRoutes);
 router.use("/website", websiteRoutes);
+router.use("/reports", reportingRoutes);
+router.use("/audit-logs", auditRoutes);
 
 
 export default router;

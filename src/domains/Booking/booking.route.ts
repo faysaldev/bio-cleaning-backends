@@ -4,6 +4,7 @@ import { authMiddleware } from "../../middlewares/auth.middleware";
 import { isAdmin } from "../../middlewares/isAdmin.middleware";
 import { requireRoles } from "../../middlewares/role.middleware";
 import { validate } from "../../middlewares/validation.middleware";
+import { idempotency } from "../../middlewares/idempotency.middleware";
 import {
   abandonmentSchema,
   availabilitySchema,
@@ -28,11 +29,11 @@ router.post("/availability", availabilityRateLimiter, validate(availabilitySchem
 router.post("/waitlist", bookingRateLimiter, validate(waitlistSchema), bookingController.joinWaitlist);
 router.post("/abandonment", bookingRateLimiter, validate(abandonmentSchema), bookingController.captureAbandonment);
 router.post("/manage/lookup", bookingRateLimiter, validate(manageLookupSchema), bookingController.getManagedBooking);
-router.post("/manage/cancel", bookingRateLimiter, validate(publicCancelSchema), bookingController.cancelManagedBooking);
-router.post("/manage/reschedule", bookingRateLimiter, validate(publicRescheduleSchema), bookingController.rescheduleManagedBooking);
-router.post("/manage/payment", bookingRateLimiter, validate(manageLookupSchema), bookingController.startManagedPayment);
-router.post("/admin", authMiddleware, requireRoles("owner", "admin", "manager", "dispatcher"), validate(createBookingSchema), bookingController.createAdminBooking);
-router.post("/", bookingRateLimiter, validate(createBookingSchema), bookingController.createBooking);
+router.post("/manage/cancel", bookingRateLimiter, idempotency("booking-manage-cancel"), validate(publicCancelSchema), bookingController.cancelManagedBooking);
+router.post("/manage/reschedule", bookingRateLimiter, idempotency("booking-manage-reschedule"), validate(publicRescheduleSchema), bookingController.rescheduleManagedBooking);
+router.post("/manage/payment", bookingRateLimiter, idempotency("booking-manage-payment"), validate(manageLookupSchema), bookingController.startManagedPayment);
+router.post("/admin", authMiddleware, requireRoles("owner", "admin", "manager", "dispatcher"), idempotency("booking-admin-create"), validate(createBookingSchema), bookingController.createAdminBooking);
+router.post("/", bookingRateLimiter, idempotency("booking-public-create"), validate(createBookingSchema), bookingController.createBooking);
 
 // Retained for compatibility with older clients; the Phase 3 UI uses /availability.
 router.get("/booked-slots", availabilityRateLimiter, bookingController.getBookedSlots);

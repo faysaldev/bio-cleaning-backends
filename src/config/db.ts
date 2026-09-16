@@ -1,20 +1,17 @@
 import dotenv from "dotenv";
 import mongoose from "mongoose";
+import logger from "../lib/logger";
 
 dotenv.config({ quiet: true });
-const MongodbURL = process.env.DATABASE_URL;
 
 const connectionToDb = async () => {
-  if (!MongodbURL) {
-    process.exit(1);
-  }
-  try {
-    await mongoose.connect(MongodbURL);
-    console.log("MongoDB Server Connected");
-  } catch (error) {
-    console.error("MongoDB connected Error", error);
-    process.exit(1);
-  }
+  const uri = process.env.DATABASE_URL;
+  if (!uri) throw new Error("DATABASE_URL is required");
+  await mongoose.connect(uri, {
+    serverSelectionTimeoutMS: 10_000,
+    maxPoolSize: Math.max(5, Number(process.env.MONGODB_MAX_POOL_SIZE || 30)),
+    minPoolSize: Math.max(0, Number(process.env.MONGODB_MIN_POOL_SIZE || 0)),
+  });
+  logger.info("mongodb_connected", { readyState: mongoose.connection.readyState });
 };
-
 export default connectionToDb;

@@ -216,6 +216,9 @@ bookingSchema.index({ serviceId: 1, startAt: 1, status: 1 });
 bookingSchema.index({ blockedStartAt: 1, blockedEndAt: 1, status: 1 });
 bookingSchema.index({ recurrenceGroupId: 1, occurrenceIndex: 1 });
 bookingSchema.index({ bookingSessionId: 1 }, { unique: true, sparse: true });
+bookingSchema.index({ createdAt: 1, status: 1 });
+bookingSchema.index({ customerId: 1, status: 1, startAt: -1 });
+bookingSchema.index({ frequency: 1, status: 1, createdAt: -1 });
 
 const Booking = mongoose.model<IBooking>("Booking", bookingSchema);
 export default Booking;

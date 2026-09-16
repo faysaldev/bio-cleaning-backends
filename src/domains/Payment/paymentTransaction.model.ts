@@ -79,6 +79,7 @@ paymentTransactionSchema.index({ invoiceId: 1, status: 1, createdAt: -1 });
 paymentTransactionSchema.index({ bookingIds: 1, purpose: 1, status: 1 });
 paymentTransactionSchema.index({ customerId: 1, createdAt: -1 });
 paymentTransactionSchema.index({ checkoutSessionId: 1 }, { unique: true, sparse: true });
+paymentTransactionSchema.index({ status: 1, type: 1, purpose: 1, createdAt: 1 });
 
 const PaymentTransaction = mongoose.model<IPaymentTransaction>("PaymentTransaction", paymentTransactionSchema);
 export default PaymentTransaction;

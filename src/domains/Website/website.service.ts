@@ -10,6 +10,25 @@ import { BadRequestError, NotFoundError, UnauthorizedError } from "../../lib/err
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
+const mergeSystemHomepageSections = (snapshot: WebsiteSnapshot) => {
+  const next = clone(snapshot);
+  const sections = Array.isArray(next.homepageSections) ? [...next.homepageSections] : [];
+  const ids = new Set(sections.map((section) => section.id));
+  const types = new Set(sections.map((section) => section.type));
+  let changed = false;
+
+  for (const systemSection of DEFAULT_WEBSITE_SNAPSHOT.homepageSections) {
+    if (ids.has(systemSection.id) || types.has(systemSection.type)) continue;
+    sections.push(clone(systemSection));
+    ids.add(systemSection.id);
+    types.add(systemSection.type);
+    changed = true;
+  }
+
+  if (changed) next.homepageSections = sections.sort((a, b) => a.order - b.order);
+  return { snapshot: next, changed };
+};
+
 const ensureWebsite = async () => {
   const website = await Website.findOneAndUpdate(
     { key: "primary" },
@@ -17,6 +36,24 @@ const ensureWebsite = async () => {
     { upsert: true, new: true, setDefaultsOnInsert: true },
   );
   if (!website) throw new BadRequestError("Website configuration could not be initialized");
+
+  // Phase 9 introduces additional system-owned homepage section types. Existing
+  // CMS documents predate those defaults, so merge only missing system sections
+  // without overwriting any editorial content, ordering, visibility, or media.
+  const draftMerge = mergeSystemHomepageSections(websiteSnapshotSchema.parse(website.draft));
+  const publishedMerge = mergeSystemHomepageSections(websiteSnapshotSchema.parse(website.published));
+  if (draftMerge.changed || publishedMerge.changed) {
+    if (draftMerge.changed) {
+      website.draft = draftMerge.snapshot;
+      website.markModified("draft");
+    }
+    if (publishedMerge.changed) {
+      website.published = publishedMerge.snapshot;
+      website.markModified("published");
+    }
+    await website.save();
+  }
+
   return website;
 };
 

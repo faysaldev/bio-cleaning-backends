@@ -3,9 +3,16 @@ import httpStatus from "http-status";
 import { response } from "../../lib/response";
 import { asyncHandler } from "../../lib/errorsHandle";
 import bookingService from "./booking.services";
+import crypto from "crypto";
+import { withDistributedLock } from "../../lib/distributedLock";
+
+const bookingLockKey = (body: any) => {
+  const identity = `${body?.customerDetails?.email || ""}:${body?.serviceId || ""}:${body?.date || ""}:${body?.timeSlot || ""}`;
+  return `booking:${crypto.createHash("sha256").update(identity).digest("hex")}`;
+};
 
 const createBooking = asyncHandler(async (req: Request, res: Response) => {
-  const result = await bookingService.createBooking(req.body);
+  const result = await withDistributedLock(bookingLockKey(req.body), () => bookingService.createBooking(req.body));
   res.status(httpStatus.CREATED).json(
     response({ message: "Booking created successfully", status: "CREATED", statusCode: httpStatus.CREATED, data: result }),
   );
@@ -13,7 +20,7 @@ const createBooking = asyncHandler(async (req: Request, res: Response) => {
 
 
 const createAdminBooking = asyncHandler(async (req: Request, res: Response) => {
-  const result = await bookingService.createBooking(req.body, { forcePayLater: true });
+  const result = await withDistributedLock(bookingLockKey(req.body), () => bookingService.createBooking(req.body, { forcePayLater: true }));
   res.status(httpStatus.CREATED).json(
     response({ message: "Admin booking created successfully", status: "CREATED", statusCode: httpStatus.CREATED, data: result }),
   );
@@ -104,7 +111,8 @@ const cancelManagedBooking = asyncHandler(async (req: Request, res: Response) =>
 });
 
 const rescheduleManagedBooking = asyncHandler(async (req: Request, res: Response) => {
-  const result = await bookingService.rescheduleManagedBooking(req.body);
+  const key = `reschedule:${crypto.createHash("sha256").update(`${req.body?.reference || ""}:${req.body?.date || ""}:${req.body?.timeSlot || ""}`).digest("hex")}`;
+  const result = await withDistributedLock(key, () => bookingService.rescheduleManagedBooking(req.body));
   res.status(httpStatus.OK).json(
     response({ message: "Booking rescheduled successfully", status: "OK", statusCode: httpStatus.OK, data: result }),
   );

@@ -9,6 +9,8 @@ import {
   SMS_WEBHOOK_TOKEN,
   SMS_WEBHOOK_URL,
 } from "../../config/ENV";
+import { getRedis } from "../../config/redis";
+import logger from "../../lib/logger";
 
 let timer: NodeJS.Timeout | undefined;
 let running = false;
@@ -66,6 +68,15 @@ const claimOne = () => NotificationDelivery.findOneAndUpdate(
 );
 
 export const processNotificationQueue = async (limit = 25) => {
+  const redis = await getRedis();
+  if (redis) {
+    try {
+      for (let i = 0; i < limit; i += 1) {
+        const signal = await redis.rpop("queue:notifications");
+        if (!signal) break;
+      }
+    } catch { /* MongoDB outbox remains the durable source of truth. */ }
+  }
   let processed = 0;
   for (let i = 0; i < limit; i += 1) {
     const delivery: any = await claimOne();
@@ -101,7 +112,7 @@ export const startNotificationWorker = () => {
   timer = setInterval(() => {
     if (running) return;
     running = true;
-    processNotificationQueue(20).catch((error) => console.error("Notification worker failed", error)).finally(() => { running = false; });
+    processNotificationQueue(20).catch((error) => logger.error("notification_worker_failed", { error })).finally(() => { running = false; });
   }, NOTIFICATION_WORKER_INTERVAL_MS);
   timer.unref?.();
 };
