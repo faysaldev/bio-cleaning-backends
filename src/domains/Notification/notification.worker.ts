@@ -14,7 +14,7 @@ import logger from "../../lib/logger";
 
 let timer: NodeJS.Timeout | undefined;
 let running = false;
-let emailTransporter: ReturnType<typeof nodemailer.createTransport> | undefined;
+let emailTransporter: nodemailer.Transporter<any> | undefined;
 
 const getEmailTransporter = () => {
   if (!EMAIL_USERNAME || !EMAIL_PASSWORD) throw new Error("Email credentials are not configured");

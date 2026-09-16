@@ -136,7 +136,7 @@ const upsertCustomer = async ({
     customer.lastActivityAt = activityTime;
   }
   if (address) {
-    const current = customer.addresses.map((item) => item.toObject?.() || item);
+    const current = customer.addresses.map((item) => (item as any).toObject?.() || item);
     const key = addressKey(address);
     if (!current.some((item) => addressKey(item) === key)) {
       customer.addresses.push({ ...address, isPrimary: current.length === 0 } as any);
@@ -171,7 +171,7 @@ const updateCustomer = async (id: string, data: UpdateCustomerInput) => {
   if (data.name !== undefined) customer.name = data.name.trim();
   if (data.status !== undefined) customer.status = data.status;
   if (data.addresses !== undefined) customer.addresses = dedupeAddresses(data.addresses) as any;
-  if (data.preferences !== undefined) customer.preferences = { ...customer.preferences?.toObject?.(), ...data.preferences } as any;
+  if (data.preferences !== undefined) customer.preferences = { ...((customer.preferences as any)?.toObject?.() || customer.preferences), ...data.preferences } as any;
   if (data.accessInstructions !== undefined) customer.accessInstructions = data.accessInstructions;
   if (data.pets !== undefined) customer.pets = data.pets as any;
   if (data.tags !== undefined) customer.tags = normalizeTags(data.tags);
