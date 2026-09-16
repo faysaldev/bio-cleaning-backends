@@ -70,3 +70,4 @@ export const SMS_PROVIDER = (process.env.SMS_PROVIDER || "disabled").toLowerCase
 export const SMS_WEBHOOK_URL: string | undefined = process.env.SMS_WEBHOOK_URL;
 export const SMS_WEBHOOK_TOKEN: string | undefined = process.env.SMS_WEBHOOK_TOKEN;
 export const PUBLIC_REVIEW_URL: string | undefined = process.env.PUBLIC_REVIEW_URL;
+export const WEBSITE_PREVIEW_TTL_MINUTES = positiveNumber(process.env.WEBSITE_PREVIEW_TTL_MINUTES, 30, 5);

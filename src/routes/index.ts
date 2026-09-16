@@ -19,6 +19,7 @@ import paymentRoutes from "../domains/Payment/payment.route";
 import portalRoutes from "../domains/Portal/portal.route";
 import reviewRoutes from "../domains/Review/review.route";
 import retentionRoutes from "../domains/Retention/retention.route";
+import websiteRoutes from "../domains/Website/website.route";
 
 
 // Initialize the router
@@ -47,6 +48,7 @@ router.use("/payments", paymentRoutes);
 router.use("/portal", portalRoutes);
 router.use("/reviews", reviewRoutes);
 router.use("/communications", retentionRoutes);
+router.use("/website", websiteRoutes);
 
 
 export default router;
