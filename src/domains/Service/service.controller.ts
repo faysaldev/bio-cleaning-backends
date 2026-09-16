@@ -55,7 +55,6 @@ const getServiceById = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const updateService = asyncHandler(async (req: Request, res: Response) => {
-  console.log(req.body);
   const result = await serviceService.updateService(req.params.id, req.body);
   res.status(httpStatus.OK).json(
     response({

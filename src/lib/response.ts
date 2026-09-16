@@ -2,35 +2,24 @@ interface ResponseData {
   statusCode: number;
   status: string;
   message: string;
-  data?: object;
-  type?: any;
-  token?: string;
+  data?: unknown;
+  type?: unknown;
 }
 
-export const response = (response: ResponseData = {} as ResponseData) => {
+export const response = (payload: ResponseData = {} as ResponseData) => {
   const responseObject: {
     code: number;
     status: string;
     message: string;
-    data?: any;
+    data?: unknown;
+    meta?: unknown;
   } = {
-    code: response.statusCode,
-    message: response.message,
-    status: response.status,
-    data: {},
+    code: payload.statusCode,
+    message: payload.message,
+    status: payload.status,
   };
 
-  if (response.type) {
-    responseObject.data.type = response.type;
-  }
-
-  if (response.data) {
-    responseObject.data = response.data;
-  }
-
-  if (response.token) {
-    responseObject.data.token = response.token; // Fixed typo: changed `response.tokens` to `response.token`
-  }
-
+  if (payload.data !== undefined) responseObject.data = payload.data;
+  if (payload.type !== undefined) responseObject.meta = payload.type;
   return responseObject;
 };

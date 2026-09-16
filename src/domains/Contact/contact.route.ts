@@ -4,14 +4,24 @@ import { authMiddleware } from "../../middlewares/auth.middleware";
 import { isAdmin } from "../../middlewares/isAdmin.middleware";
 import { validate } from "../../middlewares/validation.middleware";
 import { createContactSchema, replyContactSchema } from "./contact.validation";
+import { contactRateLimiter } from "../../middlewares/rateLimit.middleware";
 
 const router = Router();
 
-// Public routes
-router.post("/", validate(createContactSchema), contactController.createContact);
+router.post(
+  "/",
+  contactRateLimiter,
+  validate(createContactSchema),
+  contactController.createContact,
+);
 
-// Admin routes
 router.get("/", authMiddleware, isAdmin, contactController.getAllContacts);
-router.post("/:id/reply", authMiddleware, isAdmin, validate(replyContactSchema), contactController.replyToContact);
+router.post(
+  "/:id/reply",
+  authMiddleware,
+  isAdmin,
+  validate(replyContactSchema),
+  contactController.replyToContact,
+);
 
 export default router;

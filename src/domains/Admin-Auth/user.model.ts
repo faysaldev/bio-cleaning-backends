@@ -11,6 +11,7 @@ export interface IUser extends Document {
   isDeleted: boolean;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
+  passwordChangedAt?: Date;
   isPasswordMatch(password: string): Promise<boolean>;
   createdAt: Date;
   updatedAt: Date;
@@ -18,8 +19,15 @@ export interface IUser extends Document {
 
 const userSchema = new Schema<IUser>(
   {
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
+    name: { type: String, required: true, trim: true },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      index: true,
+    },
     password: { type: String, required: true, select: false },
     role: { type: String, enum: ["admin", "user"], default: "user" },
     image: {
@@ -28,8 +36,9 @@ const userSchema = new Schema<IUser>(
         "https://res.cloudinary.com/dk3v0m35u/image/upload/q_auto/f_auto/v1778614866/profile_mthun7.png",
     },
     isDeleted: { type: Boolean, default: false },
-    resetPasswordToken: { type: String },
-    resetPasswordExpires: { type: Date },
+    resetPasswordToken: { type: String, select: false, index: true },
+    resetPasswordExpires: { type: Date, select: false },
+    passwordChangedAt: { type: Date },
   },
   { timestamps: true },
 );
@@ -37,6 +46,7 @@ const userSchema = new Schema<IUser>(
 userSchema.pre("save", async function (next) {
   if (this.isModified("password")) {
     this.password = await bcrypt.hash(this.password!, 12);
+    if (!this.isNew) this.passwordChangedAt = new Date();
   }
   next();
 });
@@ -44,9 +54,8 @@ userSchema.pre("save", async function (next) {
 userSchema.methods.isPasswordMatch = async function (
   password: string,
 ): Promise<boolean> {
-  return await bcrypt.compare(password, this.password!);
+  return bcrypt.compare(password, this.password!);
 };
 
 const User = mongoose.model<IUser>("User", userSchema);
-
 export default User;

@@ -1,13 +1,45 @@
 import Redis from "ioredis";
-import dotenv from "dotenv";
+import {
+  REDIS_DB,
+  REDIS_HOST,
+  REDIS_PASSWORD,
+  REDIS_PORT,
+  REDIS_URL,
+} from "./ENV";
 
-dotenv.config({ quiet: true });
+const hasRedisConfig = Boolean(REDIS_URL || REDIS_HOST);
 
-const redis = new Redis({
-  host: process.env.REDIS_HOST, // Redis host (e.g., "localhost")
-  port: Number(process.env.REDIS_PORT), // Convert the port to a number
-  password: process.env.REDIS_PASSWORD || "", // Use default empty string if no password
-  db: Number(process.env.REDIS_DB), // Convert db to a number (default is 0)
-});
+const redis = hasRedisConfig
+  ? REDIS_URL
+    ? new Redis(REDIS_URL, {
+        lazyConnect: true,
+        maxRetriesPerRequest: 1,
+        enableOfflineQueue: false,
+      })
+    : new Redis({
+        host: REDIS_HOST,
+        port: Number(REDIS_PORT || 6379),
+        password: REDIS_PASSWORD || undefined,
+        db: Number(REDIS_DB || 0),
+        lazyConnect: true,
+        maxRetriesPerRequest: 1,
+        enableOfflineQueue: false,
+      })
+  : null;
+
+export const getRedis = async (): Promise<Redis | null> => {
+  if (!redis) return null;
+
+  try {
+    if (redis.status === "wait") {
+      await redis.connect();
+    }
+    if (redis.status !== "ready") return null;
+    return redis;
+  } catch (error) {
+    console.warn("Redis unavailable; falling back to in-memory rate limiting.");
+    return null;
+  }
+};
 
 export default redis;

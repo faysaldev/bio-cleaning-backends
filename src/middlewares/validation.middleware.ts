@@ -4,7 +4,9 @@ import { ZodSchema, ZodError } from "zod";
 export const validate = (schema: ZodSchema) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await schema.parseAsync(req.body);
+      // Replace the incoming body with Zod's parsed output so unknown fields are
+      // stripped and transforms/defaults actually become authoritative.
+      req.body = await schema.parseAsync(req.body);
       next();
     } catch (error) {
       if (error instanceof ZodError) {

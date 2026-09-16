@@ -3,9 +3,10 @@ import httpStatus from "http-status";
 import { response } from "../../lib/response";
 import { asyncHandler } from "../../lib/errorsHandle";
 import User from "./user.model";
-import { BadRequestError, NotFoundError } from "../../lib/errors";
+import { BadRequestError } from "../../lib/errors";
 import { ProtectedRequest } from "../../types/protected-request";
-import bcrypt from "bcryptjs";
+import AuthSession from "../Auth/authSession.model";
+import { clearAuthCookies } from "../../lib/authTokens";
 
 const getProfile = asyncHandler(async (req: ProtectedRequest, res: Response) => {
   const user = await User.findById(req.user!._id);
@@ -15,43 +16,48 @@ const getProfile = asyncHandler(async (req: ProtectedRequest, res: Response) => 
       status: "OK",
       statusCode: httpStatus.OK,
       data: user!,
-    })
+    }),
   );
 });
 
 const updateProfile = asyncHandler(async (req: ProtectedRequest, res: Response) => {
-  const user = await User.findByIdAndUpdate(req.user!._id, req.body, { new: true });
+  const user = await User.findByIdAndUpdate(req.user!._id, req.body, {
+    new: true,
+    runValidators: true,
+  });
   res.status(httpStatus.OK).json(
     response({
       message: "Profile updated successfully",
       status: "OK",
       statusCode: httpStatus.OK,
       data: user!,
-    })
+    }),
   );
 });
 
 const changePassword = asyncHandler(async (req: ProtectedRequest, res: Response) => {
   const { oldPassword, newPassword } = req.body;
   const user = await User.findById(req.user!._id).select("+password");
-  
+
   if (!user || !(await user.isPasswordMatch(oldPassword))) {
     throw new BadRequestError("Invalid old password");
   }
 
   user.password = newPassword;
   await user.save();
+  await AuthSession.deleteMany({ userId: user._id });
+  clearAuthCookies(res);
 
   res.status(httpStatus.OK).json(
     response({
-      message: "Password changed successfully",
+      message: "Password changed successfully. Please sign in again.",
       status: "OK",
       statusCode: httpStatus.OK,
-    })
+    }),
   );
 });
 
-const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
+const getAllUsers = asyncHandler(async (_req: Request, res: Response) => {
   const users = await User.find({ isDeleted: false });
   res.status(httpStatus.OK).json(
     response({
@@ -59,7 +65,7 @@ const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
       status: "OK",
       statusCode: httpStatus.OK,
       data: users,
-    })
+    }),
   );
 });
 

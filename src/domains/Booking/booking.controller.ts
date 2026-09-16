@@ -12,7 +12,19 @@ const createBooking = asyncHandler(async (req: Request, res: Response) => {
       status: "CREATED",
       statusCode: httpStatus.CREATED,
       data: result,
-    })
+    }),
+  );
+});
+
+const getQuote = asyncHandler(async (req: Request, res: Response) => {
+  const result = await bookingService.getQuote(req.body);
+  res.status(httpStatus.OK).json(
+    response({
+      message: "Booking quote calculated successfully",
+      status: "OK",
+      statusCode: httpStatus.OK,
+      data: result,
+    }),
   );
 });
 
@@ -25,7 +37,7 @@ const getAllBookings = asyncHandler(async (req: Request, res: Response) => {
       statusCode: httpStatus.OK,
       data: result.bookings,
       type: result.meta,
-    })
+    }),
   );
 });
 
@@ -37,7 +49,7 @@ const getBookingById = asyncHandler(async (req: Request, res: Response) => {
       status: "OK",
       statusCode: httpStatus.OK,
       data: result,
-    })
+    }),
   );
 });
 
@@ -49,25 +61,25 @@ const updateBookingStatus = asyncHandler(async (req: Request, res: Response) => 
       status: "OK",
       statusCode: httpStatus.OK,
       data: result,
-    })
+    }),
   );
 });
 
 const getBookedSlots = asyncHandler(async (req: Request, res: Response) => {
-  const date = req.query.date as string;
-  const result = await bookingService.getBookedSlots(date);
+  const result = await bookingService.getBookedSlots(req.query.date as string);
   res.status(httpStatus.OK).json(
     response({
       message: "Booked slots retrieved successfully",
       status: "OK",
       statusCode: httpStatus.OK,
       data: result,
-    })
+    }),
   );
 });
 
 const bookingController = {
   createBooking,
+  getQuote,
   getAllBookings,
   getBookingById,
   updateBookingStatus,

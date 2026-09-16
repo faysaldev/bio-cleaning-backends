@@ -1,43 +1,69 @@
 import express, { Request, Response } from "express";
 import routes from "./routes/index";
-import logRequestResponse from "./middlewares/logger.middleware";
 import compression from "compression";
 import { globalErrorHandler, notFoundHandler } from "./lib/errorsHandle";
-import cors from "cors";
+import cors, { CorsOptions } from "cors";
+import { CORS_ORIGINS, FRONTEND_URL } from "./config/ENV";
 
 const app = express();
+app.set("trust proxy", 1);
+app.disable("x-powered-by");
 
-app.use(express.json());
-
-// TODO: for local only
-app.use(
-  cors({
-    origin: "*", // allow only this origin to access the API
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"], // allow only these HTTP methods
-    allowedHeaders: ["Content-Type", "Authorization"], // allow only these headers
-  }),
+const allowedOrigins = new Set(
+  [FRONTEND_URL, ...CORS_ORIGINS]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => value.replace(/\/$/, "")),
 );
 
-// parse urlencoded request body
-app.use(express.urlencoded({ extended: true }));
+if (process.env.NODE_ENV !== "production") {
+  ["http://localhost:3000", "http://127.0.0.1:3000"].forEach((origin) =>
+    allowedOrigins.add(origin),
+  );
+}
 
-// compression the all data
+const corsOptions: CorsOptions = {
+  credentials: true,
+  origin(origin, callback) {
+    // Server-to-server requests generally do not include Origin.
+    if (!origin) return callback(null, true);
+    const normalized = origin.replace(/\/$/, "");
+    if (allowedOrigins.has(normalized)) return callback(null, true);
+    return callback(null, false);
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
+  exposedHeaders: [
+    "RateLimit-Limit",
+    "RateLimit-Remaining",
+    "RateLimit-Reset",
+    "Retry-After",
+  ],
+};
+
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
+
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  if (process.env.NODE_ENV === "production") {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+  next();
+});
+
+app.use(express.json({ limit: "256kb" }));
+app.use(express.urlencoded({ extended: true, limit: "256kb" }));
 app.use(compression());
 
-// Use the logging middleware for all routes
-// app.use(logRequestResponse);
-
-// Use the centralized routes
-app.get("/", (req: Request, res: Response) => {
-  res.send("Hello, TypeScript with Node and Express!");
+app.get("/", (_req: Request, res: Response) => {
+  res.send("BIO Cleaning API");
 });
 
 app.use("/api/v1", routes);
-
-// Handle 404 - Route not found
 app.use(notFoundHandler);
-
-// Global error handler - must be last middleware
 app.use(globalErrorHandler);
 
 export default app;
