@@ -43,6 +43,7 @@ export interface ICustomer extends Document {
   lastLeadId?: Types.ObjectId;
   createdSource?: string;
   lastActivityAt?: Date;
+  stripeCustomerId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -117,6 +118,7 @@ const customerSchema = new Schema<ICustomer>(
     lastLeadId: { type: Schema.Types.ObjectId, ref: "Lead", index: true },
     createdSource: { type: String, trim: true, maxlength: 80 },
     lastActivityAt: { type: Date, index: true },
+    stripeCustomerId: { type: String, unique: true, sparse: true, index: true },
   },
   { timestamps: true },
 );

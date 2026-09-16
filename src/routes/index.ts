@@ -13,6 +13,9 @@ import leadRoutes from "../domains/Lead/lead.route";
 import customerRoutes from "../domains/Customer/customer.route";
 import teamRoutes from "../domains/Team/team.route";
 import fieldOpsRoutes from "../domains/FieldOps/fieldOps.route";
+import quoteRoutes from "../domains/Quote/quote.route";
+import invoiceRoutes from "../domains/Invoice/invoice.route";
+import paymentRoutes from "../domains/Payment/payment.route";
 
 // Initialize the router
 const router = Router();
@@ -34,5 +37,8 @@ router.use("/leads", leadRoutes);
 router.use("/customers", customerRoutes);
 router.use("/team", teamRoutes);
 router.use("/field-ops", fieldOpsRoutes);
+router.use("/quotes", quoteRoutes);
+router.use("/invoices", invoiceRoutes);
+router.use("/payments", paymentRoutes);
 
 export default router;

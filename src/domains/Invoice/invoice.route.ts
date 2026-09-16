@@ -1,0 +1,11 @@
+import { Router } from "express";
+import invoiceController from "./invoice.controller";
+import { authMiddleware } from "../../middlewares/auth.middleware";
+import { isAdmin } from "../../middlewares/isAdmin.middleware";
+import { requireRoles } from "../../middlewares/role.middleware";
+import { validate } from "../../middlewares/validation.middleware";
+import { bookingRateLimiter } from "../../middlewares/rateLimit.middleware";
+import { manualPaymentSchema, updateInvoiceSchema } from "./invoice.validation";
+const router=Router();
+router.get("/public/:token",bookingRateLimiter,invoiceController.publicGet);router.post("/public/:token/pay",bookingRateLimiter,invoiceController.publicPay);router.post("/public/:token/recurring/start",bookingRateLimiter,invoiceController.publicStartRecurring);
+router.use(authMiddleware,isAdmin);router.get("/summary",invoiceController.summary);router.get("/",invoiceController.list);router.get("/:id",invoiceController.get);router.patch("/:id",requireRoles("owner","admin","manager"),validate(updateInvoiceSchema),invoiceController.update);router.post("/:id/send",requireRoles("owner","admin","manager","dispatcher","support"),invoiceController.send);router.post("/:id/payment-link",requireRoles("owner","admin","manager","dispatcher","support"),invoiceController.payAdmin);router.post("/:id/manual-payment",requireRoles("owner","admin","manager"),validate(manualPaymentSchema),invoiceController.manual);router.post("/:id/void",requireRoles("owner","admin","manager"),invoiceController.voidInvoice);router.post("/:id/recurring/start",requireRoles("owner","admin","manager"),invoiceController.startRecurring);router.post("/:id/recurring/cancel",requireRoles("owner","admin","manager"),invoiceController.cancelRecurring);export default router;

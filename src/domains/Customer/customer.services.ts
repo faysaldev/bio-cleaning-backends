@@ -3,6 +3,7 @@ import Customer from "./customer.model";
 import Booking from "../Booking/booking.model";
 import Lead from "../Lead/lead.model";
 import LeadTask from "../Lead/leadTask.model";
+import Invoice from "../Invoice/invoice.model";
 import { BadRequestError, ConflictError, NotFoundError } from "../../lib/errors";
 import type { CreateCustomerInput, UpdateCustomerInput } from "./customer.validation";
 
@@ -278,13 +279,12 @@ const getCustomer360 = async (id: string) => {
   const identityOr: any[] = [{ customerId: customer._id }];
   if (customer.normalizedEmail) identityOr.push({ "customerDetails.email": customer.normalizedEmail });
   if (customer.phone) identityOr.push({ "customerDetails.phone": customer.phone });
-  const [bookings, leads, tasks] = await Promise.all([
+  const leadIds = await Lead.find({ customerId: customer._id }).distinct("_id");
+  const [bookings, leads, tasks, invoices] = await Promise.all([
     Booking.find({ $or: identityOr }).sort({ startAt: -1, createdAt: -1 }).lean(),
     Lead.find({ customerId: customer._id }).populate("ownerId", "name email").sort({ createdAt: -1 }).lean(),
-    LeadTask.find({ leadId: { $in: await Lead.find({ customerId: customer._id }).distinct("_id") }, status: "PENDING" })
-      .sort({ dueAt: 1 })
-      .limit(20)
-      .lean(),
+    LeadTask.find({ leadId: { $in: leadIds }, status: "PENDING" }).sort({ dueAt: 1 }).limit(20).lean(),
+    Invoice.find({ customerId: customer._id }).sort({ issuedAt: -1 }).lean(),
   ]);
 
   const now = Date.now();
@@ -292,24 +292,10 @@ const getCustomer360 = async (id: string) => {
     ["PENDING", "CONFIRMED"].includes(booking.status) && new Date(booking.startAt || booking.date).getTime() >= now,
   );
   const completed = bookings.filter((booking: any) => booking.status === "COMPLETED");
-  const lifetimeValue = completed.reduce((sum: number, booking: any) => sum + Number(booking.totalAmount || 0), 0);
-  const outstandingBalance = bookings.reduce((sum: number, booking: any) => {
-    if (booking.payment?.option !== "DEPOSIT") return sum;
-    if (["PAID", "REFUNDED", "NOT_REQUIRED"].includes(booking.payment?.status)) return sum;
-    return sum + Number(booking.payment?.depositAmount || 0);
-  }, 0);
-  const invoices = bookings
-    .filter((booking: any) => booking.status === "COMPLETED" || booking.payment?.option === "DEPOSIT")
-    .map((booking: any) => ({
-      id: `booking-${booking._id}`,
-      reference: booking.reference,
-      source: "BOOKING_LEDGER",
-      amount: Number(booking.totalAmount || 0),
-      depositAmount: Number(booking.payment?.depositAmount || 0),
-      paymentStatus: booking.payment?.status || "NOT_REQUIRED",
-      service: booking.serviceType,
-      date: booking.startAt || booking.date,
-    }));
+  const lifetimeValue = invoices.reduce((sum: number, invoice: any) => sum + Number(invoice.amountPaid || 0) - Number(invoice.amountRefunded || 0), 0);
+  const outstandingBalance = invoices
+    .filter((invoice: any) => !["VOID", "PAID", "REFUNDED"].includes(invoice.status))
+    .reduce((sum: number, invoice: any) => sum + Number(invoice.amountDue || 0), 0);
 
   return {
     customer,

@@ -12,7 +12,9 @@
     "fieldops:backfill": "node ./dist/scripts/backfill-field-ops.js",
     "fieldops:backfill:dev": "ts-node ./src/scripts/backfill-field-ops.ts",
     "team:bootstrap-owner": "node ./dist/scripts/bootstrap-owner.js",
-    "team:bootstrap-owner:dev": "ts-node ./src/scripts/bootstrap-owner.ts"
+    "team:bootstrap-owner:dev": "ts-node ./src/scripts/bootstrap-owner.ts",
+    "finance:backfill": "node ./dist/scripts/backfill-finance.js",
+    "finance:backfill:dev": "ts-node ./src/scripts/backfill-finance.ts"
   },
   "keywords": [],
   "author": "Faysal Mridha",

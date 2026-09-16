@@ -1,0 +1,11 @@
+import { Response } from "express";
+import httpStatus from "http-status";
+import { asyncHandler } from "../../lib/errorsHandle";
+import { response } from "../../lib/response";
+import { ProtectedRequest } from "../../types/protected-request";
+import paymentService from "./payment.services";
+const list=asyncHandler(async(req:ProtectedRequest,res:Response)=>{const r=await paymentService.listPayments(req.query);res.status(httpStatus.OK).json(response({message:"Payments retrieved successfully",status:"OK",statusCode:httpStatus.OK,data:r.payments,type:r.meta}));});
+const refund=asyncHandler(async(req:ProtectedRequest,res:Response)=>{const data=await paymentService.refundPayment(req.params.id,req.body.amount);res.status(httpStatus.OK).json(response({message:"Refund submitted successfully",status:"OK",statusCode:httpStatus.OK,data}));});
+const recurring=asyncHandler(async(_req:ProtectedRequest,res:Response)=>{const data=await paymentService.listRecurring();res.status(httpStatus.OK).json(response({message:"Recurring billing agreements retrieved",status:"OK",statusCode:httpStatus.OK,data}));});
+const cancelRecurring=asyncHandler(async(req:ProtectedRequest,res:Response)=>{const data=await paymentService.cancelRecurring(req.params.id);res.status(httpStatus.OK).json(response({message:"Recurring billing canceled",status:"OK",statusCode:httpStatus.OK,data}));});
+export default {list,refund,recurring,cancelRecurring};

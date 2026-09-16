@@ -11,6 +11,7 @@ import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from ".
 import { formatDateInZone, formatTimeInZone, minutesFromTime } from "../Scheduling/scheduling.time";
 import { getCapacityBucketKeys, getSchedulingSettings } from "../Scheduling/scheduling.services";
 import type { RoleType } from "../../config/roles";
+import { ensureInvoiceForCompletedJob } from "../Invoice/invoice.services";
 
 const ACTIVE_JOB_STATUSES: JobStatus[] = ["SCHEDULED", "EN_ROUTE", "IN_PROGRESS", "PAUSED", "ISSUE"];
 const managementRoles = new Set(["owner", "admin", "manager", "dispatcher", "support", "read_only"]);
@@ -100,11 +101,12 @@ export const ensureJobForBooking = async (bookingOrId: any) => {
       existing.actualCompletedAt = existing.actualCompletedAt || new Date();
     }
     await existing.save();
+    if (existing.status === "COMPLETED") { try { await ensureInvoiceForCompletedJob(existing); } catch (error) { console.error("Completed job invoice sync failed:", error); } }
     return existing;
   }
 
   try {
-    return await Job.create({
+    const createdJob = await Job.create({
       jobNumber: `JOB-${booking.reference}`,
       bookingId: booking._id,
       customerId: booking.customerId,
@@ -120,6 +122,8 @@ export const ensureJobForBooking = async (bookingOrId: any) => {
       checklist: defaultChecklist(service),
       actualCompletedAt: status === "COMPLETED" ? new Date() : undefined,
     });
+    if (createdJob.status === "COMPLETED") { try { await ensureInvoiceForCompletedJob(createdJob); } catch (error) { console.error("Completed job invoice sync failed:", error); } }
+    return createdJob;
   } catch (error: any) {
     if (error?.code === 11000) {
       const raced = await Job.findOne({ bookingId: booking._id });
@@ -363,6 +367,7 @@ const updateStatus = async (jobId: string, nextStatus: JobStatus, userId: string
   if (nextStatus === "COMPLETED") {
     await StaffAssignmentBucket.deleteMany({ jobId: job._id });
     await Booking.findByIdAndUpdate(job.bookingId, { status: "COMPLETED" });
+    try { await ensureInvoiceForCompletedJob(job); } catch (error) { console.error("Job completed but invoice generation failed:", error); }
   }
   if (["EN_ROUTE", "IN_PROGRESS", "PAUSED", "ISSUE"].includes(nextStatus)) {
     await Booking.updateOne({ _id: job.bookingId, status: "PENDING" }, { $set: { status: "CONFIRMED" } });

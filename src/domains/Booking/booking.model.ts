@@ -15,6 +15,7 @@ export interface IPriceBreakdown {
   extrasTotal: number;
   subtotal: number;
   promotionDiscount: number;
+  manualDiscountAmount?: number;
   taxRate: number;
   taxAmount: number;
   total: number;
@@ -97,6 +98,7 @@ const priceBreakdownSchema = new Schema<IPriceBreakdown>(
     extrasTotal: { type: Number, required: true },
     subtotal: { type: Number, required: true },
     promotionDiscount: { type: Number, required: true },
+    manualDiscountAmount: { type: Number, default: 0 },
     taxRate: { type: Number, required: true },
     taxAmount: { type: Number, required: true },
     total: { type: Number, required: true },

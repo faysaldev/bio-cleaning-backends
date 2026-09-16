@@ -661,7 +661,7 @@ const replayBookingSession = async (bookingSessionId: string) => {
 
 const createBooking = async (
   data: CreateBookingInput,
-  options: { forcePayLater?: boolean } = {},
+  options: { forcePayLater?: boolean; trustedPriceBreakdown?: Record<string, number> } = {},
 ) => {
   if (data.bookingSessionId) {
     const replay = await replayBookingSession(data.bookingSessionId);
@@ -670,6 +670,23 @@ const createBooking = async (
 
   const quote = await calculateBookingQuote(data);
   const settings = await getSchedulingSettings();
+  // Accepted estimates carry a frozen, server-created commercial snapshot. Only
+  // internal server callers can provide this override; browser payloads never can.
+  if (options.trustedPriceBreakdown) {
+    const frozenTotal = money(Number(options.trustedPriceBreakdown.total));
+    if (!Number.isFinite(frozenTotal) || frozenTotal < 0) {
+      throw new BadRequestError("Accepted estimate has an invalid price snapshot");
+    }
+    quote.priceBreakdown = { ...quote.priceBreakdown, ...options.trustedPriceBreakdown, total: frozenTotal };
+    quote.payment.depositAmount =
+      settings.depositPolicy === "NONE"
+        ? 0
+        : money(
+            settings.depositType === "PERCENT"
+              ? frozenTotal * (Math.min(100, settings.depositValue) / 100)
+              : Math.min(frozenTotal, settings.depositValue),
+          );
+  }
   const occurrenceCount =
     data.frequency === "ONE_TIME"
       ? 1
