@@ -1,11 +1,12 @@
 import mongoose, { Schema, Document } from "mongoose";
 import bcrypt from "bcryptjs";
+import type { RoleType } from "../../config/roles";
 
 export interface IUser extends Document {
   name: string;
   email: string;
   password?: string;
-  role: "admin" | "user";
+  role: RoleType;
   image?: string;
   dateOfBirth?: Date;
   isDeleted: boolean;
@@ -29,7 +30,12 @@ const userSchema = new Schema<IUser>(
       index: true,
     },
     password: { type: String, required: true, select: false },
-    role: { type: String, enum: ["admin", "user"], default: "user" },
+    role: {
+      type: String,
+      enum: ["owner", "admin", "manager", "dispatcher", "cleaner", "support", "read_only", "user"],
+      default: "user",
+      index: true,
+    },
     image: {
       type: String,
       default:

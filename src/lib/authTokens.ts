@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { Request, Response, CookieOptions } from "express";
 import jwt from "jsonwebtoken";
+import type { RoleType } from "../config/roles";
 import {
   ACCESS_TOKEN_TTL_SECONDS,
   COOKIE_DOMAIN,
@@ -17,7 +18,7 @@ export type AccessTokenPayload = {
   tokenType: "access";
   userId: string;
   sessionId: string;
-  role: "admin" | "user";
+  role: RoleType;
 };
 
 export type RefreshTokenPayload = {

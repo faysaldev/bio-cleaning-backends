@@ -8,7 +8,11 @@
     "build": "tsc",
     "start": "node ./dist/index.js",
     "crm:backfill": "node ./dist/scripts/backfill-crm.js",
-    "crm:backfill:dev": "ts-node ./src/scripts/backfill-crm.ts"
+    "crm:backfill:dev": "ts-node ./src/scripts/backfill-crm.ts",
+    "fieldops:backfill": "node ./dist/scripts/backfill-field-ops.js",
+    "fieldops:backfill:dev": "ts-node ./src/scripts/backfill-field-ops.ts",
+    "team:bootstrap-owner": "node ./dist/scripts/bootstrap-owner.js",
+    "team:bootstrap-owner:dev": "ts-node ./src/scripts/bootstrap-owner.ts"
   },
   "keywords": [],
   "author": "Faysal Mridha",

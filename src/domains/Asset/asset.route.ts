@@ -1,7 +1,7 @@
 import { Router } from "express";
 import assetController from "./asset.controller";
 import { authMiddleware } from "../../middlewares/auth.middleware";
-import { isAdmin } from "../../middlewares/isAdmin.middleware";
+import { requireRoles } from "../../middlewares/role.middleware";
 import {
   cloudinaryFileUploadMiddleware,
   processCloudinarySingleUpload,
@@ -12,10 +12,10 @@ const router = Router();
 router.post(
   "/upload",
   authMiddleware,
-  isAdmin,
+  requireRoles("owner", "admin", "manager", "dispatcher", "cleaner", "support"),
   cloudinaryFileUploadMiddleware().single("file"),
   processCloudinarySingleUpload("assets", "file"),
-  assetController.uploadAsset
+  assetController.uploadAsset,
 );
 
 export default router;

@@ -1,0 +1,20 @@
+import { Router } from "express";
+import teamController from "./team.controller";
+import { authMiddleware } from "../../middlewares/auth.middleware";
+import { requireRoles } from "../../middlewares/role.middleware";
+import { validate } from "../../middlewares/validation.middleware";
+import { createCrewSchema, createStaffProfileSchema, updateCrewSchema, updateStaffProfileSchema } from "./team.validation";
+
+const router = Router();
+router.use(authMiddleware);
+router.get("/me", teamController.me);
+router.get("/staff", requireRoles("owner", "admin", "manager", "dispatcher", "support", "read_only"), teamController.listStaff);
+router.get("/staff/:id", requireRoles("owner", "admin", "manager", "dispatcher", "support", "read_only"), teamController.getStaff);
+router.post("/staff", requireRoles("owner", "admin", "manager"), validate(createStaffProfileSchema), teamController.createStaff);
+router.patch("/staff/:id", requireRoles("owner", "admin", "manager"), validate(updateStaffProfileSchema), teamController.updateStaff);
+router.delete("/staff/:id", requireRoles("owner", "admin", "manager"), teamController.deactivateStaff);
+router.get("/crews", requireRoles("owner", "admin", "manager", "dispatcher", "support", "read_only"), teamController.listCrews);
+router.post("/crews", requireRoles("owner", "admin", "manager", "dispatcher"), validate(createCrewSchema), teamController.createCrew);
+router.patch("/crews/:id", requireRoles("owner", "admin", "manager", "dispatcher"), validate(updateCrewSchema), teamController.updateCrew);
+router.delete("/crews/:id", requireRoles("owner", "admin", "manager"), teamController.deactivateCrew);
+export default router;

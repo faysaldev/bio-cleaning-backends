@@ -111,9 +111,11 @@ const updateStaff = async (id: string, data: any) => {
 };
 
 const deleteStaff = async (id: string) => {
-  const staff = await StaffSchedule.findByIdAndDelete(id);
-  if (!staff) throw new NotFoundError("Staff schedule not found");
-  return staff;
+  const existing = await StaffSchedule.findById(id);
+  if (!existing) throw new NotFoundError("Staff schedule not found");
+  if (existing.userId) throw new BadRequestError("Login-linked team members must be deactivated from Team management");
+  await existing.deleteOne();
+  return existing;
 };
 
 const listBlocks = async () => ScheduleBlock.find().sort({ startAt: 1 });
@@ -206,7 +208,10 @@ export const getEffectiveCapacity = async ({
   const dayOfWeek = new Date(`${date}T12:00:00.000Z`).getUTCDay();
   const staff = await StaffSchedule.find({
     isActive: true,
-    $or: [{ serviceIds: { $size: 0 } }, { serviceIds: new Types.ObjectId(serviceId) }],
+    $and: [
+      { $or: [{ role: "cleaner" }, { role: { $exists: false } }] },
+      { $or: [{ serviceIds: { $size: 0 } }, { serviceIds: new Types.ObjectId(serviceId) }] },
+    ],
   });
 
   const staffCapacity = staff.length

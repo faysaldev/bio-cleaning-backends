@@ -43,6 +43,7 @@ import {
 import { createStripeCheckoutSession } from "../Payment/stripe.service";
 import { FRONTEND_URL, JWT_SECRET } from "../../config/ENV";
 import { convertBookingLead, upsertLeadFromSource } from "../Lead/lead.services";
+import { ensureJobForBooking } from "../FieldOps/fieldOps.services";
 
 const ACTIVE_BOOKING_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"];
 const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
@@ -833,6 +834,12 @@ const createBooking = async (
     console.error("Booking was created but CRM customer/lead synchronization failed:", error);
   }
 
+  try {
+    await Promise.all(created.map((booking) => ensureJobForBooking(booking)));
+  } catch (error) {
+    console.error("Booking was created but field job synchronization failed:", error);
+  }
+
   const payment = await ensureCheckoutForSeries({
     primary,
     occurrences: created,
@@ -1085,6 +1092,7 @@ const updateBookingStatus = async (id: string, status: any) => {
   } catch (error) {
     console.error("Failed to send booking status email:", error);
   }
+  try { await ensureJobForBooking(booking); } catch (error) { console.error("Booking updated but field job synchronization failed:", error); }
   return booking;
 };
 
@@ -1221,6 +1229,7 @@ const cancelManagedBooking = async (data: PublicCancelInput) => {
 
   if (!cancelledBooking) throw new NotFoundError("Booking not found");
   if (didCancel) void notifyWaitlistForOpening(cancelledBooking);
+  try { await ensureJobForBooking(cancelledBooking); } catch (error) { console.error("Cancelled booking job sync failed:", error); }
   return sanitizeManagedBooking(cancelledBooking);
 };
 
@@ -1303,6 +1312,7 @@ const rescheduleManagedBooking = async (data: PublicRescheduleInput) => {
       timeSlot: oldOpening.timeSlot,
     });
   }
+  try { await ensureJobForBooking(rescheduledBooking); } catch (error) { console.error("Rescheduled booking job sync failed:", error); }
   return sanitizeManagedBooking(rescheduledBooking);
 };
 

@@ -2,6 +2,7 @@ import { Router } from "express";
 import bookingController from "./booking.controller";
 import { authMiddleware } from "../../middlewares/auth.middleware";
 import { isAdmin } from "../../middlewares/isAdmin.middleware";
+import { requireRoles } from "../../middlewares/role.middleware";
 import { validate } from "../../middlewares/validation.middleware";
 import {
   abandonmentSchema,
@@ -30,7 +31,7 @@ router.post("/manage/lookup", bookingRateLimiter, validate(manageLookupSchema), 
 router.post("/manage/cancel", bookingRateLimiter, validate(publicCancelSchema), bookingController.cancelManagedBooking);
 router.post("/manage/reschedule", bookingRateLimiter, validate(publicRescheduleSchema), bookingController.rescheduleManagedBooking);
 router.post("/manage/payment", bookingRateLimiter, validate(manageLookupSchema), bookingController.startManagedPayment);
-router.post("/admin", authMiddleware, isAdmin, validate(createBookingSchema), bookingController.createAdminBooking);
+router.post("/admin", authMiddleware, requireRoles("owner", "admin", "manager", "dispatcher"), validate(createBookingSchema), bookingController.createAdminBooking);
 router.post("/", bookingRateLimiter, validate(createBookingSchema), bookingController.createBooking);
 
 // Retained for compatibility with older clients; the Phase 3 UI uses /availability.
@@ -43,7 +44,7 @@ router.get("/:id", authMiddleware, isAdmin, bookingController.getBookingById);
 router.patch(
   "/:id/status",
   authMiddleware,
-  isAdmin,
+  requireRoles("owner", "admin", "manager", "dispatcher"),
   validate(updateBookingStatusSchema),
   bookingController.updateBookingStatus,
 );

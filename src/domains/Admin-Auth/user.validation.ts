@@ -9,7 +9,7 @@ export const createUserSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
   email: z.string().trim().toLowerCase().email("Invalid email address").max(254),
   password: strongPassword,
-  role: z.enum(["admin", "user"]).optional(),
+  role: z.enum(["owner", "admin", "manager", "dispatcher", "cleaner", "support", "read_only", "user"]).optional(),
 });
 
 export const updateUserSchema = z.object({

@@ -11,6 +11,8 @@ import assetRoutes from "../domains/Asset/asset.route";
 import schedulingRoutes from "../domains/Scheduling/scheduling.route";
 import leadRoutes from "../domains/Lead/lead.route";
 import customerRoutes from "../domains/Customer/customer.route";
+import teamRoutes from "../domains/Team/team.route";
+import fieldOpsRoutes from "../domains/FieldOps/fieldOps.route";
 
 // Initialize the router
 const router = Router();
@@ -30,5 +32,7 @@ router.use("/assets", assetRoutes);
 router.use("/scheduling", schedulingRoutes);
 router.use("/leads", leadRoutes);
 router.use("/customers", customerRoutes);
+router.use("/team", teamRoutes);
+router.use("/field-ops", fieldOpsRoutes);
 
 export default router;
