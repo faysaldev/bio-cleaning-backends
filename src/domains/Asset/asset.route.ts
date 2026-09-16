@@ -3,8 +3,8 @@ import assetController from "./asset.controller";
 import { authMiddleware } from "../../middlewares/auth.middleware";
 import { requireRoles } from "../../middlewares/role.middleware";
 import {
-  cloudinaryFileUploadMiddleware,
-  processCloudinarySingleUpload,
+  fileUploadMiddleware,
+  processR2SingleUpload,
 } from "../../middlewares/fileUpload.middleware";
 
 const router = Router();
@@ -13,8 +13,8 @@ router.post(
   "/upload",
   authMiddleware,
   requireRoles("owner", "admin", "manager", "dispatcher", "cleaner", "support"),
-  cloudinaryFileUploadMiddleware().single("file"),
-  processCloudinarySingleUpload("assets", "file"),
+  fileUploadMiddleware().single("file"),
+  processR2SingleUpload("assets", "file"),
   assetController.uploadAsset,
 );
 

@@ -1,30 +1,25 @@
-import { v2 as cloudinary } from "cloudinary";
 import MediaProcessingJob from "./mediaProcessingJob.model";
-import { CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, CLOUDINARY_CLOUD_NAME, MEDIA_WORKER_INTERVAL_MS } from "../../config/ENV";
+import { MEDIA_WORKER_INTERVAL_MS } from "../../config/ENV";
 import { getRedis } from "../../config/redis";
 import logger from "../../lib/logger";
 
-cloudinary.config({ cloud_name: CLOUDINARY_CLOUD_NAME, api_key: CLOUDINARY_API_KEY, api_secret: CLOUDINARY_API_SECRET });
 let timer: NodeJS.Timeout | undefined;
 let running = false;
 
 const processOne = async () => {
   const job: any = await MediaProcessingJob.findOneAndUpdate(
-    { $or: [{ status: { $in: ["QUEUED", "FAILED"] }, nextAttemptAt: { $lte: new Date() }, attempts: { $lt: 5 } }, { status: "PROCESSING", lockedAt: { $lte: new Date(Date.now() - 10 * 60000) }, attempts: { $lt: 5 } }] },
+    {
+      $or: [
+        { status: { $in: ["QUEUED", "FAILED"] }, nextAttemptAt: { $lte: new Date() }, attempts: { $lt: 5 } },
+        { status: "PROCESSING", lockedAt: { $lte: new Date(Date.now() - 10 * 60000) }, attempts: { $lt: 5 } },
+      ],
+    },
     { $set: { status: "PROCESSING", lockedAt: new Date() }, $inc: { attempts: 1 } },
     { new: true, sort: { nextAttemptAt: 1 } },
   );
   if (!job) return false;
   try {
-    await cloudinary.uploader.explicit(job.publicId, {
-      type: "upload",
-      resource_type: "image",
-      eager: [
-        { width: 1920, height: 1920, crop: "limit", quality: "auto:good", fetch_format: "auto" },
-        { width: 960, height: 960, crop: "limit", quality: "auto:eco", fetch_format: "auto" },
-      ],
-      eager_async: true,
-    });
+    // All media uploaded through the R2 pipeline is already compressed to WebP on-the-fly via Sharp.
     job.status = "COMPLETED";
     job.completedAt = new Date();
     job.lockedAt = undefined;
@@ -50,7 +45,7 @@ export const processMediaQueue = async (limit = 10) => {
     } catch { /* MongoDB jobs remain durable when Redis is unavailable. */ }
   }
   let processed = 0;
-  while (processed < limit && await processOne()) processed += 1;
+  while (processed < limit && (await processOne())) processed += 1;
   return processed;
 };
 
@@ -59,7 +54,11 @@ export const startMediaProcessingWorker = () => {
   timer = setInterval(() => {
     if (running) return;
     running = true;
-    processMediaQueue().catch((error) => logger.error("media_worker_failed", { error })).finally(() => { running = false; });
+    processMediaQueue()
+      .catch((error) => logger.error("media_worker_failed", { error }))
+      .finally(() => {
+        running = false;
+      });
   }, MEDIA_WORKER_INTERVAL_MS);
   timer.unref?.();
 };

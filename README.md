@@ -1,116 +1,172 @@
-# BIO Cleaning LLC - Backend API Infrastructure
+# BIO Cleaning LLC — Backend API Infrastructure
 
 ![BIO Cleaning LLC Banner](https://bio-cleaning-llc.vercel.app/og-image.jpg)
 
-This is the core API engine powering **BIO Cleaning LLC**, a professional, eco-friendly cleaning service platform. This backend provides a secure, scalable RESTful API built with Node.js, Express, and MongoDB to manage bookings, services, and administrative operations.
+This is the enterprise backend engine powering **BIO Cleaning LLC**, an eco-friendly cleaning service and field management platform. Engineered with **Express.js**, **TypeScript**, **MongoDB**, and **Redis**, this service delivers real-time booking orchestration, dynamic capacity scheduling, field staff dispatch, CRM pipeline management, automated invoicing with Stripe, customer self-service portals, and background worker automation.
 
 ---
 
-## 🚀 Live Ecosystem
+## 🚀 Live Ecosystem & Credentials
+
 - **Production API**: [https://bio-cleaning-backends.vercel.app/](https://bio-cleaning-backends.vercel.app/)
-- **Frontend (Live)**: [https://bio-cleaning-llc.vercel.app/](https://bio-cleaning-llc.vercel.app/)
-- **Frontend Source**: [https://github.com/faysaldev/bio-cleaning-client](https://github.com/faysaldev/bio-cleaning-client)
+- **Frontend Client**: [https://bio-cleaning-llc.vercel.app/](https://bio-cleaning-llc.vercel.app/)
+- **Admin Access Portal**: `/admin/login`
+  - Default Admin Email: `faysaladmin@gmail.com`
+  - Default Admin Password: `Password123@`
 
 ---
 
-## 🔐 Administrative Credentials
-For testing and management purposes, use the following admin credentials at the `/admin/login` portal:
+## 🏗 System Architecture & Technology Stack
 
-```json
-{
-  "admin_credentials": {
-    "email": "faysaladmin@gmail.com",
-    "password": "Password123@"
-  }
-}
+- **Runtime & Language**: Node.js >= 20.0.0, TypeScript 5.9
+- **Framework**: Express.js 5.1
+- **Database**: MongoDB 8.19 (Mongoose ODM with ACID transaction support)
+- **Cache & Distributed Locking**: Upstash Redis (TLS `rediss://`) with in-process memory fallback
+- **Validation**: Zod 4.3 (strict request schema enforcement)
+- **Security**: HttpOnly cookie-based dual-token sessions (Access + Refresh), CSRF tokens, strict CORS, CSP, HSTS, Rate Limiting, and Idempotency key handling
+- **Communications**: Nodemailer (Gmail SMTP pool), SMS Webhook Gateway
+- **Payments**: Stripe API, Stripe Checkout Sessions, and Raw Webhook signature verification
+- **Media & Storage**: Cloudflare R2 Object Storage with automated Sharp WebP compression pipeline
+
+---
+
+## 📦 Domain Architecture (21 Modules)
+
+```
+src/domains/
+├── Admin-Auth/      # Administrative user management & profile updates
+├── Asset/           # File and media asset upload to Cloudinary
+├── Audit/           # Tamper-evident immutable audit logs with IP hashing
+├── Auth/            # Authentication, HttpOnly session cookies, CSRF, password resets
+├── Booking/         # 8-step booking pipeline, pricing engine, waitlist, abandonment recovery
+├── Contact/         # Contact inquiries & administrative email response system
+├── Customer/        # Customer 360 profiles, LTV tracking, history, notes, and reviews
+├── Dashboard/       # Executive metrics, 30-day comparative growth, recent reservations
+├── FieldOps/        # Field job dispatch, status lifecycle, digital checklists, photos, issues
+├── Finance/         # Financial counters and sequence number generators
+├── Idempotency/     # Request deduplication with SHA-256 canonical body hashing
+├── Invoice/         # Invoice generation (INV-XXXXX), PDF creation, balance & deposits
+├── Lead/            # CRM pipeline Kanban, automated follow-up tasks, CSV lead import
+├── MediaProcessing/ # Asynchronous Cloudinary image optimization queue & worker
+├── Notification/    # Outbox delivery worker, Gmail SMTP pool, SMS webhook gateway
+├── Payment/         # Stripe checkout, transaction ledger, recurring billing, refunds
+├── Portal/          # Customer self-service portal, passwordless magic links, 1-click rebook
+├── Quote/           # Instant cleaning price calculator & public estimate approval flow
+├── Reporting/       # Business intelligence, revenue analytics, cleaner utilization
+├── Retention/       # Automated lifecycle triggers (pre-service reminders, post-service review, win-back)
+├── Review/          # Verified review collection, star ratings, moderation & Google review funnel
+├── Scheduling/      # Capacity buckets, staff schedules, day-of-week rules, blackout dates
+├── Service/         # Service catalog, sqft/bedroom/bathroom pricing matrices, add-ons
+├── Team/            # Cleaner profiles, crew groupings, color codes, team RBAC
+└── Website/         # Visual CMS for landing pages, SEO metadata, drafts, revision history
 ```
 
 ---
 
-## 🛠 Problem Solved
-BIO Cleaning LLC solves the friction in the traditional cleaning industry:
-- **Automation**: Replaces manual scheduling with a real-time booking engine.
-- **Transparency**: Provides instant quotes based on property size and service type.
-- **Efficiency**: Automates customer notifications and admin orchestration.
-- **Data-Driven**: Offers a comprehensive dashboard for tracking revenue and growth.
+## ⚙️ Environment Variables Reference
+
+Copy `.env.example` to `.env` and configure:
+
+```env
+# Runtime
+NODE_ENV=development
+PORT=9500
+BACKEND_IP=0.0.0.0
+
+# Database (Requires Replica Set / Atlas for Transactions)
+DATABASE_URL=mongodb+srv://USER:PASSWORD@HOST/bio-cleaning
+
+# Frontend / CORS
+FRONTEND_URL=http://localhost:3000
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+
+# Authentication & Sessions
+JWT_SECRET=replace_with_64_char_secret
+JWT_REFRESH_SECRET=replace_with_different_64_char_secret
+ACCESS_TOKEN_TTL_SECONDS=900
+REFRESH_TOKEN_TTL_DAYS=7
+REMEMBER_ME_REFRESH_TOKEN_TTL_DAYS=30
+
+# Cookies
+COOKIE_SECURE=false
+COOKIE_SAME_SITE=lax
+
+# Upstash Redis (TLS rediss://)
+REDIS_URL=rediss://default:PASSWORD@HOST.upstash.io:6379
+
+# Email (Gmail SMTP)
+EMAIL_USERNAME=your_gmail@gmail.com
+EMAIL_PASSWORD=your_16_char_google_app_password
+
+# Stripe
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# Cloudflare R2 Object Storage (Images auto-compressed to WebP)
+R2_ACCOUNT_ID=your_cloudflare_account_id
+R2_ACCESS_KEY_ID=your_r2_access_key_id
+R2_SECRET_ACCESS_KEY=your_r2_secret_access_key
+R2_BUCKET_NAME=bio-cleaning-media
+R2_PUBLIC_URL=https://pub-xxxx.r2.dev
+
+# Customer Portal & Retention
+PORTAL_SESSION_DAYS=30
+PORTAL_MAGIC_LINK_MINUTES=20
+NOTIFICATION_WORKER_INTERVAL_MS=5000
+NOTIFICATION_MAX_ATTEMPTS=5
+RETENTION_SWEEP_INTERVAL_MS=300000
+COMMUNICATIONS_CRON_SECRET=replace_with_random_cron_secret
+SMS_PROVIDER=disabled
+PUBLIC_REVIEW_URL=https://g.page/r/your-business/review
+
+# Operations & Auditing
+APP_RELEASE=1.0.0
+AUDIT_LOG_RETENTION_DAYS=180
+AUDIT_IP_SALT=replace_with_random_ip_salt
+MEDIA_WORKER_INTERVAL_MS=10000
+BACKUP_RETENTION_DAYS=14
+BACKUP_DIR=./backups
+MONGODUMP_BIN=mongodump
+```
 
 ---
 
-## 📖 Backend Features & Modules
+## 🚀 Getting Started
 
-### 1. Booking Engine (`/api/v1/bookings`)
-- **Automated Reference Generation**: Unique `BIO-XXXXX` tracking numbers.
-- **Availability Logic**: Prevents double-booking of time slots.
-- **Status Workflow**: Tracks lifecycle from `PENDING` -> `CONFIRMED` -> `COMPLETED`/`CANCELLED`.
+### 1. Installation
+```bash
+pnpm install
+```
 
-### 2. Service Management (`/api/v1/services`)
-- **Dynamic Catalog**: CRUD operations for cleaning services.
-- **Short Details API**: Optimized endpoint for high-performance frontend listing.
-- **Status Toggles**: Instantly publish/unpublish services from the client view.
+### 2. Type Checking & Verification
+```bash
+pnpm run typecheck
+```
 
-### 3. Admin Dashboard (`/api/v1/dashboard`)
-- **Growth Metrics**: Real-time revenue and booking stats compared to the previous 30 days.
-- **Client Analytics**: Unique client tracking and growth percentages.
-- **Recent Activity**: Live feed of incoming reservations.
-
-### 4. Contact & Communication (`/api/v1/contact`)
-- **Inquiry Management**: Centralized list of customer messages.
-- **Professional Reply System**: Integrated email responses sent directly to customers via Nodemailer.
-
----
-
-## 🛠 Tech Stack
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Language**: TypeScript
-- **Database**: MongoDB (Mongoose ODM)
-- **Validation**: Zod (Schema-level validation)
-- **Security**: JWT Authentication & Role-Based Access Control (RBAC)
-- **Email**: Nodemailer (SMTP integration)
+### 3. Running Locally
+```bash
+pnpm run dev
+```
+The server will start on `http://localhost:9500`.
+Health check: `GET http://localhost:9500/health`
+Ready check: `GET http://localhost:9500/ready`
 
 ---
 
-## 📈 Search Engine Optimization (SEO) Plan
-*Implemented on the frontend to ensure maximum visibility.*
+## 🛠 Database Maintenance & Migration Scripts
 
-| Page | Title Tag | Meta Description |
-| :--- | :--- | :--- |
-| **Home** | Professional Eco-Friendly Cleaning | Book residential/commercial cleaning in 60s. Insured teams & eco-safe products. |
-| **Services** | Our Cleaning Packages & Pricing | Explore Deep, Residential, and Move-In/Out cleaning packages with instant pricing. |
-| **Booking** | Book Your Professional Clean | Instant online booking engine. Pick your date, time, and service in a few clicks. |
-| **Contact** | Contact BIO Cleaning LLC | Have questions or need a custom commercial quote? Our team is available 7 days a week. |
-
----
-
-## 🛠 Local Setup & Installation
-
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/faysaldev/bio-cleaning-backends.git
-   cd bio-cleaning-backends
-   ```
-
-2. **Install Dependencies**:
-   ```bash
-   pnpm install
-   ```
-
-3. **Environment Configuration**:
-   Create a `.env` file in the root and configure:
-   ```env
-   PORT=9500
-   DATABASE_URL=your_mongodb_url
-   JWT_SECRET=your_secret
-   EMAIL_USERNAME=your_smtp_user
-   EMAIL_PASSWORD=your_smtp_pass
-   ```
-
-4. **Run Development Server**:
-   ```bash
-   pnpm run dev
-   ```
+| Command | Description |
+| :--- | :--- |
+| `npm run crm:backfill:dev` | Syncs historical bookings into CRM Leads & Customer 360 records. |
+| `npm run fieldops:backfill:dev` | Generates dispatched `Job` instances and task checklists for past bookings. |
+| `npm run finance:backfill:dev` | Backfills `Invoice` documents and financial counters. |
+| `npm run services:backfill-slugs:dev` | Generates URL-friendly slugs for all active cleaning services. |
+| `npm run team:bootstrap-owner:dev -- email@example.com` | Promotes an administrator to the root `owner` role. |
+| `npm run backup:mongodb` | Creates a compressed, timestamped MongoDB archive dump in `./backups`. |
+| `npm run restore:mongodb -- <path>` | Restores a database backup from a `.archive.gz` file. |
 
 ---
 
 ## 📄 License
-This project is licensed under the **MIT License**. See the [LICENSE](./LICENSE) file for details.
+
+This project is licensed under the **MIT License**. See [LICENSE](./LICENSE) for details.

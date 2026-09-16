@@ -1,25 +1,32 @@
 import MediaProcessingJob from "./mediaProcessingJob.model";
 import { getRedis } from "../../config/redis";
 
-export const publicIdFromCloudinaryUrl = (url: string) => {
+export const keyFromMediaUrl = (url: string): string | undefined => {
   try {
     const pathname = new URL(url).pathname;
-    const marker = "/upload/";
-    const idx = pathname.indexOf(marker);
-    if (idx < 0) return undefined;
-    const after = pathname.slice(idx + marker.length).replace(/^v\d+\//, "");
-    return decodeURIComponent(after).replace(/\.[a-z0-9]+$/i, "");
+    const clean = pathname.replace(/^\/+/, "");
+    return clean || undefined;
   } catch {
-    return undefined;
+    return url.split("/").pop() || undefined;
   }
 };
 
 export const enqueueMediaOptimization = async (sourceUrl: string, publicId?: string) => {
-  const id = publicId || publicIdFromCloudinaryUrl(sourceUrl);
+  const id = publicId || keyFromMediaUrl(sourceUrl);
   if (!id) return null;
   const job = await MediaProcessingJob.findOneAndUpdate(
-    { publicId: id, kind: "CLOUDINARY_OPTIMIZE" },
-    { $setOnInsert: { publicId: id, sourceUrl, kind: "CLOUDINARY_OPTIMIZE", status: "QUEUED", nextAttemptAt: new Date(), expiresAt: new Date(Date.now() + 30 * 86400000) } },
+    { publicId: id, kind: "R2_OPTIMIZE" },
+    {
+      $setOnInsert: {
+        publicId: id,
+        sourceUrl,
+        kind: "R2_OPTIMIZE",
+        status: "COMPLETED", // Pre-compressed to WebP on upload
+        nextAttemptAt: new Date(),
+        completedAt: new Date(),
+        expiresAt: new Date(Date.now() + 30 * 86400000),
+      },
+    },
     { upsert: true, new: true, setDefaultsOnInsert: true },
   );
   const redis = await getRedis();

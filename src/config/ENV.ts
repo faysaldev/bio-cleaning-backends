@@ -18,7 +18,7 @@ export const EMAIL_USERNAME: string = process.env.EMAIL_USERNAME as string;
 export const EMAIL_PASSWORD: string = process.env.EMAIL_PASSWORD as string;
 export const STRIPE_SECRET_KEY: string = process.env.STRIPE_SECRET_KEY as string;
 export const STRIPE_WEBHOOK_SECRET: string | undefined = process.env.STRIPE_WEBHOOK_SECRET;
-export const FRONTEND_URL: string | undefined = process.env.FRONTEND_URL;
+export const FRONTEND_URL: string | undefined = process.env.FRONTEND_URL || process.env.FRONT_END_URL;
 export const CORS_ORIGINS: string[] = (process.env.CORS_ORIGINS || "")
   .split(",")
   .map((origin) => origin.trim())
@@ -45,18 +45,17 @@ export const COOKIE_SECURE =
 export const COOKIE_SAME_SITE: "lax" | "strict" | "none" =
   sameSiteValue === "strict" || sameSiteValue === "none" ? sameSiteValue : "lax";
 
-export const REDIS_URL: string | undefined = process.env.REDIS_URL;
+export const REDIS_URL: string | undefined = process.env.UPSTASH_REDIS_URL || process.env.REDIS_URL;
 export const REDIS_HOST: string | undefined = process.env.REDIS_HOST;
 export const REDIS_PORT: string | undefined = process.env.REDIS_PORT;
 export const REDIS_PASSWORD: string | undefined = process.env.REDIS_PASSWORD;
 export const REDIS_DB: string | undefined = process.env.REDIS_DB;
 
-export const CLOUDINARY_CLOUD_NAME: string | undefined =
-  process.env.CLOUDINARY_CLOUD_NAME;
-export const CLOUDINARY_API_KEY: string | undefined =
-  process.env.CLOUDINARY_API_KEY;
-export const CLOUDINARY_API_SECRET: string | undefined =
-  process.env.CLOUDINARY_API_SECRET;
+export const R2_ACCOUNT_ID: string | undefined = process.env.R2_ACCOUNT_ID;
+export const R2_ACCESS_KEY_ID: string | undefined = process.env.R2_ACCESS_KEY_ID;
+export const R2_SECRET_ACCESS_KEY: string | undefined = process.env.R2_SECRET_ACCESS_KEY;
+export const R2_BUCKET_NAME: string | undefined = process.env.R2_BUCKET_NAME;
+export const R2_PUBLIC_URL: string | undefined = process.env.R2_PUBLIC_URL;
 export const CRYPTO_SECRET_KEY: string | undefined =
   process.env.CRYPTO_SECRET_KEY;
 

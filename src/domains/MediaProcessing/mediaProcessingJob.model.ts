@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 
 export interface IMediaProcessingJob {
-  kind: "CLOUDINARY_OPTIMIZE";
+  kind: "R2_OPTIMIZE" | "CLOUDINARY_OPTIMIZE";
   publicId: string;
   sourceUrl: string;
   status: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED";
@@ -15,7 +15,7 @@ export interface IMediaProcessingJob {
 
 const schema = new Schema<IMediaProcessingJob>(
   {
-    kind: { type: String, enum: ["CLOUDINARY_OPTIMIZE"], required: true },
+    kind: { type: String, enum: ["R2_OPTIMIZE", "CLOUDINARY_OPTIMIZE"], default: "R2_OPTIMIZE", required: true },
     publicId: { type: String, required: true, index: true },
     sourceUrl: { type: String, required: true },
     status: { type: String, enum: ["QUEUED", "PROCESSING", "COMPLETED", "FAILED"], default: "QUEUED", index: true },

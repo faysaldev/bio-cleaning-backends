@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import mongoose from "mongoose";
 import routes from "./routes/index";
 import compression from "compression";
+import connectionToDb from "./config/db";
 import { globalErrorHandler, notFoundHandler } from "./lib/errorsHandle";
 import cors, { CorsOptions } from "cors";
 import { APP_RELEASE, CORS_ORIGINS, CSP_REPORT_URI, FRONTEND_URL, REDIS_HOST, REDIS_URL } from "./config/ENV";
@@ -66,7 +67,19 @@ app.get("/ready", async (_req: Request, res: Response) => {
   res.status(ready ? 200 : 503).json({ status: ready ? "ready" : "not-ready", database, redis, release: APP_RELEASE });
 });
 app.get("/version", (_req: Request, res: Response) => res.json({ api: "v1", release: APP_RELEASE }));
-app.get("/", (_req: Request, res: Response) => res.send("BIO Cleaning API"));
+app.use(async (req, _res, next) => {
+  if (req.path === "/health" || req.path === "/version" || req.path === "/") {
+    return next();
+  }
+  if (mongoose.connection.readyState !== 1) {
+    try {
+      await connectionToDb();
+    } catch (err) {
+      return next(err);
+    }
+  }
+  next();
+});
 
 app.use("/api/v1", routes);
 app.use(notFoundHandler);

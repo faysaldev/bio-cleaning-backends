@@ -1,10 +1,27 @@
+# Dependencies
 /node_modules
+/.pnpm-store
+
+# Environment files
 .env
+.env.local
+.env.*.local
+
+# Logs
 /logs
+*.log
 
-*.dbdiagram
+# Build output
+/dist
+dist/
+*.tsbuildinfo
 
+# Editor & System
+.DS_Store
 /.claude
+/.vscode
+/.idea
 
-
+# Temp & backups
 backups/
+*.dbdiagram
