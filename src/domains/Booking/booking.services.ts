@@ -42,6 +42,7 @@ import {
 } from "../Scheduling/scheduling.time";
 import { createStripeCheckoutSession } from "../Payment/stripe.service";
 import { FRONTEND_URL, JWT_SECRET } from "../../config/ENV";
+import { convertBookingLead, upsertLeadFromSource } from "../Lead/lead.services";
 
 const ACTIVE_BOOKING_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"];
 const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
@@ -808,6 +809,30 @@ const createBooking = async (
 
   const primary = created[0];
   if (!primary) throw new ConflictError("The booking could not be reserved. Please retry.");
+
+  try {
+    const converted = await convertBookingLead({
+      bookingSessionId: data.bookingSessionId,
+      bookingReference: primary.reference,
+      name: data.customerDetails.name,
+      email: data.customerDetails.email,
+      phone: data.customerDetails.phone,
+      address: {
+        ...data.customerDetails.address,
+        propertyType: data.property?.propertyType,
+      },
+      value: quote.priceBreakdown.total * occurrenceCount,
+      occurredAt: primary.createdAt || new Date(),
+    });
+    if (converted?.customer?._id) {
+      const filter = recurrenceGroupId ? { recurrenceGroupId } : { _id: primary._id };
+      await Booking.updateMany(filter, { $set: { customerId: converted.customer._id } });
+      created.forEach((booking) => { booking.customerId = converted.customer._id; });
+    }
+  } catch (error) {
+    console.error("Booking was created but CRM customer/lead synchronization failed:", error);
+  }
+
   const payment = await ensureCheckoutForSeries({
     primary,
     occurrences: created,
@@ -1098,7 +1123,7 @@ const joinWaitlist = async (data: WaitlistInput) => {
 };
 
 const captureAbandonment = async (data: AbandonmentInput) => {
-  return AbandonedBooking.findOneAndUpdate(
+  const entry = await AbandonedBooking.findOneAndUpdate(
     { sessionId: data.sessionId },
     {
       $set: {
@@ -1110,6 +1135,33 @@ const captureAbandonment = async (data: AbandonmentInput) => {
     },
     { new: true, upsert: true, setDefaultsOnInsert: true },
   );
+
+  const hasContact = Boolean(data.customer?.email || data.customer?.phone);
+  if (hasContact && entry.state !== "CONVERTED") {
+    try {
+      const service = data.serviceId ? await Service.findById(data.serviceId).select("name basePrice").lean() : null;
+      const lead = await upsertLeadFromSource({
+        name: data.customer?.name || "Booking inquiry",
+        email: data.customer?.email || undefined,
+        phone: data.customer?.phone || undefined,
+        source: "BOOKING_ABANDONMENT",
+        referenceId: data.sessionId,
+        requestedServiceId: data.serviceId,
+        requestedServiceName: service?.name,
+        value: Number(service?.basePrice || 0),
+        message: `Booking journey paused at ${data.stage}${data.requestedDate ? ` for ${data.requestedDate}` : ""}.`,
+        abandonedBookingId: String(entry._id),
+      });
+      if (!entry.leadId || String(entry.leadId) !== String(lead._id)) {
+        entry.leadId = lead._id as any;
+        await entry.save();
+      }
+    } catch (error) {
+      console.error("Failed to sync abandoned booking into lead pipeline:", error);
+    }
+  }
+
+  return entry;
 };
 
 const managedBooking = async ({ reference, manageToken }: ManageLookupInput) => {

@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
+import { ProtectedRequest } from "../../types/protected-request";
 import httpStatus from "http-status";
 import { response } from "../../lib/response";
 import { asyncHandler } from "../../lib/errorsHandle";
 import contactService from "./contact.services";
-import { sendEmail } from "../../lib/mail.service";
 
 const createContact = asyncHandler(async (req: Request, res: Response) => {
   const result = await contactService.createContact(req.body);
@@ -30,13 +30,13 @@ const getAllContacts = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
-const replyToContact = asyncHandler(async (req: Request, res: Response) => {
+const replyToContact = asyncHandler(async (req: ProtectedRequest, res: Response) => {
   const result = await contactService.replyToContact(
     req.params.id,
     req.body.reply,
+    req.user?._id,
   );
 
-  console.log("🚀 ~ replyToContact ~ result:", result);
   res.status(httpStatus.OK).json(
     response({
       message: "Reply sent successfully",

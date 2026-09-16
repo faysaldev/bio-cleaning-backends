@@ -131,3 +131,9 @@ export const contactRateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 6,
 });
+
+export const leadCaptureRateLimiter = createRateLimiter({
+  namespace: "public-lead-capture",
+  windowMs: 15 * 60 * 1000,
+  max: 12,
+});

@@ -5,6 +5,7 @@ export interface IAbandonedBooking {
   state: "ACTIVE" | "ABANDONED" | "CONVERTED";
   stage: string;
   serviceId?: Types.ObjectId;
+  leadId?: Types.ObjectId;
   property?: Record<string, unknown>;
   extraCodes?: string[];
   frequency?: string;
@@ -24,6 +25,7 @@ const abandonedBookingSchema = new Schema<IAbandonedBooking>(
     state: { type: String, enum: ["ACTIVE", "ABANDONED", "CONVERTED"], default: "ACTIVE", index: true },
     stage: { type: String, required: true },
     serviceId: { type: Schema.Types.ObjectId, ref: "Service" },
+    leadId: { type: Schema.Types.ObjectId, ref: "Lead", index: true },
     property: { type: Schema.Types.Mixed },
     extraCodes: { type: [String], default: [] },
     frequency: { type: String },

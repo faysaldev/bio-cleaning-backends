@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document, Types } from "mongoose";
 
 export interface IContact extends Document {
   fullName: string;
@@ -7,6 +7,7 @@ export interface IContact extends Document {
   service: string;
   message: string;
   reply?: string;
+  leadId?: Types.ObjectId;
   status: "PENDING" | "REPLIED";
   createdAt: Date;
   updatedAt: Date;
@@ -20,6 +21,7 @@ const contactSchema = new Schema<IContact>(
     service: { type: String, required: true },
     message: { type: String, required: true },
     reply: { type: String },
+    leadId: { type: Schema.Types.ObjectId, ref: "Lead", index: true },
     status: {
       type: String,
       enum: ["PENDING", "REPLIED"],

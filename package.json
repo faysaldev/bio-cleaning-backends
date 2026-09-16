@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "tsc",
-    "start": "node ./dist/index.js"
+    "start": "node ./dist/index.js",
+    "crm:backfill": "node ./dist/scripts/backfill-crm.js",
+    "crm:backfill:dev": "ts-node ./src/scripts/backfill-crm.ts"
   },
   "keywords": [],
   "author": "Faysal Mridha",

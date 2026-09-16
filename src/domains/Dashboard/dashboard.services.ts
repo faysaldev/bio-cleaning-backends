@@ -1,4 +1,5 @@
 import Booking from "../Booking/booking.model";
+import Customer from "../Customer/customer.model";
 
 const calculateChange = (current: number, previous: number) => {
   if (previous === 0) return current > 0 ? 100 : 0;
@@ -32,25 +33,16 @@ const getStats = async () => {
   const currentCompleted = await Booking.countDocuments({ status: "COMPLETED", createdAt: { $gte: thirtyDaysAgo } });
   const prevCompleted = await Booking.countDocuments({ status: "COMPLETED", createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } });
 
-  // 4. Unique Clients
-  const currentClientsData = await Booking.distinct("customerDetails.email", { createdAt: { $gte: thirtyDaysAgo } });
-  const prevClientsData = await Booking.distinct("customerDetails.email", { createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } });
-  const currentClientsCount = currentClientsData.length;
-  const prevClientsCount = prevClientsData.length;
-
-  // 5. Latest 5 Unique Clients
-  const clientList = await Booking.aggregate([
-    { $sort: { createdAt: -1 } },
-    { $group: { 
-        _id: "$customerDetails.email", 
-        name: { $first: "$customerDetails.name" }, 
-        phone: { $first: "$customerDetails.phone" },
-        lastBooking: { $first: "$createdAt" }
-      } 
-    },
-    { $sort: { lastBooking: -1 } },
-    { $limit: 5 },
-    { $project: { _id: 0, email: "$_id", name: 1, phone: 1 } }
+  // 4. Customers now come from the CRM customer record instead of being inferred
+  // from booking email addresses. Converted leads therefore count immediately.
+  const [currentClientsCount, prevClientsCount, clientList] = await Promise.all([
+    Customer.countDocuments({ createdAt: { $gte: thirtyDaysAgo }, status: "ACTIVE" }),
+    Customer.countDocuments({ createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo }, status: "ACTIVE" }),
+    Customer.find({ status: "ACTIVE" })
+      .sort({ lastActivityAt: -1, createdAt: -1 })
+      .limit(5)
+      .select("name email phone")
+      .lean(),
   ]);
 
   return {

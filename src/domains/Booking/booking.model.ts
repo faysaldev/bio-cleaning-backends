@@ -22,6 +22,7 @@ export interface IPriceBreakdown {
 
 export interface IBooking extends Document {
   reference: string;
+  customerId?: Types.ObjectId;
   serviceId?: Types.ObjectId;
   serviceType: string;
   propertySize: string;
@@ -154,6 +155,7 @@ const paymentSchema = new Schema(
 const bookingSchema = new Schema<IBooking>(
   {
     reference: { type: String, required: true, unique: true, index: true },
+    customerId: { type: Schema.Types.ObjectId, ref: "Customer", index: true },
     serviceId: { type: Schema.Types.ObjectId, ref: "Service", index: true },
     serviceType: { type: String, required: true },
     propertySize: { type: String, required: true },
