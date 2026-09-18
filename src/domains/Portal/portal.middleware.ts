@@ -12,7 +12,7 @@ export interface PortalRequest extends Request {
 
 export const portalAuthMiddleware = async (req: PortalRequest, _res: Response, next: NextFunction) => {
   try {
-    const raw = getCookie(req, PORTAL_COOKIE_NAME);
+    const raw = getCookie(req, PORTAL_COOKIE_NAME) || req.header("x-portal-session");
     if (!raw) throw new UnauthorizedError("Customer portal sign-in required");
     const session: any = await PortalSession.findOne({ tokenHash: hashToken(raw), expiresAt: { $gt: new Date() } }).select("+tokenHash +csrfToken");
     if (!session) throw new UnauthorizedError("Customer portal session is invalid or expired");

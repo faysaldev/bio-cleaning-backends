@@ -31,6 +31,9 @@ const getEmailTransporter = () => {
 };
 
 const sendEmailNow = async (delivery: any) => {
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`\n[EMAIL DISPATCH] Attempting to send to: ${delivery.recipient} | Subject: "${delivery.subject}"`);
+  }
   await getEmailTransporter().sendMail({
     from: `"BIO Cleaning LLC" <${EMAIL_USERNAME}>`,
     to: delivery.recipient,
@@ -38,6 +41,9 @@ const sendEmailNow = async (delivery: any) => {
     text: delivery.text,
     html: delivery.html,
   });
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[EMAIL DISPATCH] Successfully delivered email to ${delivery.recipient}\n`);
+  }
   return "gmail";
 };
 

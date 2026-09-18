@@ -26,10 +26,22 @@ const cleanCustomer = (customer: any) => ({
   pets: customer.pets || [],
 });
 
-const requestMagicLink = async (email: string, context: { ipAddress?: string }) => {
+const resolveFrontendUrl = (origin?: string): string => {
+  if (origin) {
+    try {
+      const parsed = new URL(origin);
+      return `${parsed.protocol}//${parsed.host}`;
+    } catch {}
+  }
+  return FRONTEND_URL || "http://localhost:3000";
+};
+
+const requestMagicLink = async (email: string, context: { ipAddress?: string; origin?: string }) => {
   const normalized = email.trim().toLowerCase();
   const customer: any = await Customer.findOne({ normalizedEmail: normalized, status: "ACTIVE" });
-  if (!customer || !FRONTEND_URL) return;
+  if (!customer) return;
+
+  const baseFrontendUrl = resolveFrontendUrl(context.origin).replace(/\/$/, "");
 
   await PortalMagicLink.deleteMany({ customerId: customer._id, consumedAt: { $exists: false } });
   const rawToken = crypto.randomBytes(32).toString("hex");
@@ -39,7 +51,15 @@ const requestMagicLink = async (email: string, context: { ipAddress?: string }) 
     expiresAt: new Date(Date.now() + PORTAL_MAGIC_LINK_MINUTES * 60 * 1000),
     requestedIp: context.ipAddress,
   });
-  const url = `${FRONTEND_URL.replace(/\/$/, "")}/portal/auth?token=${encodeURIComponent(rawToken)}`;
+  const url = `${baseFrontendUrl}/portal/auth?token=${encodeURIComponent(rawToken)}`;
+
+  if (process.env.NODE_ENV !== "production") {
+    console.log("\n========================================================");
+    console.log(`[CUSTOMER PORTAL MAGIC LINK for ${normalized}]`);
+    console.log(`URL: ${url}`);
+    console.log("========================================================\n");
+  }
+
   await enqueueDelivery({
     channel: "EMAIL",
     recipient: normalized,

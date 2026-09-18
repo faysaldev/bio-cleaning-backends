@@ -11,13 +11,14 @@ const cookieOptions = { httpOnly: true, secure: COOKIE_SECURE, sameSite: COOKIE_
 const ok = (res: Response, data: unknown, message: string) => res.status(httpStatus.OK).json(response({ statusCode: httpStatus.OK, status: "OK", message, data }));
 
 const requestLink = asyncHandler(async (req: Request, res: Response) => {
-  await portalService.requestMagicLink(req.body.email, { ipAddress: req.ip });
+  const origin = req.get("origin") || req.get("referer");
+  await portalService.requestMagicLink(req.body.email, { ipAddress: req.ip, origin });
   ok(res, undefined, "If a customer account exists for that email, a secure sign-in link has been sent.");
 });
 const exchange = asyncHandler(async (req: Request, res: Response) => {
   const result = await portalService.exchangeMagicLink(req.body.token, { ipAddress: req.ip, userAgent: req.get("user-agent") });
   res.cookie(PORTAL_COOKIE_NAME, result.rawSession, { ...cookieOptions, maxAge: result.maxAgeSeconds * 1000 });
-  ok(res, { csrfToken: result.csrfToken, customer: result.customer }, "Portal sign-in successful");
+  ok(res, { csrfToken: result.csrfToken, customer: result.customer, portalSession: result.rawSession }, "Portal sign-in successful");
 });
 const session = asyncHandler(async (req: PortalRequest, res: Response) => ok(res, await portalService.getSession(req.portal!.sessionId, req.portal!.customerId), "Portal session retrieved"));
 const logout = asyncHandler(async (req: PortalRequest, res: Response) => { await portalService.revokeSession(req.portal!.sessionId); res.clearCookie(PORTAL_COOKIE_NAME, cookieOptions); ok(res, undefined, "Signed out"); });
