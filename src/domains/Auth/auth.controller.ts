@@ -30,7 +30,12 @@ const sessionResponse = (result: {
     result.refreshToken,
     result.refreshTtlSeconds,
   );
-  return { user: result.user, csrfToken: result.csrfToken };
+  return {
+    user: result.user,
+    csrfToken: result.csrfToken,
+    accessToken: result.accessToken,
+    refreshToken: result.refreshToken,
+  };
 };
 
 const login = asyncHandler(async (req: Request, res: Response) => {
@@ -60,7 +65,7 @@ const register = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const refresh = asyncHandler(async (req: Request, res: Response) => {
-  const refreshToken = getCookie(req, REFRESH_COOKIE_NAME);
+  const refreshToken = (req.body?.refreshToken as string | undefined) || getCookie(req, REFRESH_COOKIE_NAME);
   if (!refreshToken) throw new UnauthorizedError("Refresh session is missing");
 
   const result = await authService.refreshSession(refreshToken, requestContext(req));

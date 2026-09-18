@@ -109,13 +109,17 @@ export const globalErrorHandler = (
 
   // Log error in development
   if (isDevelopment) {
-    console.error("ERROR:", {
-      message: error.message,
-      statusCode: error.statusCode,
-      stack: error.stack,
-      path: req.path,
-      method: req.method,
-    });
+    if (error.statusCode === 404) {
+      console.warn(`[404 Not Found] ${req.method} ${req.path}`);
+    } else {
+      console.error("ERROR:", {
+        message: error.message,
+        statusCode: error.statusCode,
+        stack: error.stack,
+        path: req.path,
+        method: req.method,
+      });
+    }
   } else if (!error.isOperational) {
     void reportError({
       error,

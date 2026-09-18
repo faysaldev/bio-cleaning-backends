@@ -60,7 +60,7 @@ const paymentTransactionSchema = new Schema<IPaymentTransaction>(
     recurringBillingId: { type: Schema.Types.ObjectId, ref: "RecurringBilling", index: true },
     parentPaymentId: { type: Schema.Types.ObjectId, ref: "PaymentTransaction", index: true },
     allocations: { type: [allocationSchema], default: [] },
-    checkoutSessionId: { type: String, index: true, sparse: true },
+    checkoutSessionId: { type: String },
     paymentIntentId: { type: String, index: true, sparse: true },
     chargeId: { type: String, index: true, sparse: true },
     refundId: { type: String, unique: true, sparse: true },

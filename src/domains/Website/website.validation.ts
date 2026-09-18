@@ -1,7 +1,30 @@
 import { z } from "zod";
 
 const safeText = (max = 5000) => z.string().trim().max(max);
-const url = z.string().trim().url().max(2000).or(z.literal(""));
+const url = z
+  .string()
+  .trim()
+  .max(2000)
+  .refine(
+    (val) => {
+      if (!val) return true;
+      if (
+        val.startsWith("/") ||
+        val.startsWith("#") ||
+        val.startsWith("mailto:") ||
+        val.startsWith("tel:")
+      ) {
+        return true;
+      }
+      try {
+        new URL(val);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    { message: "Invalid URL or path" },
+  );
 
 const linkSchema = z.object({
   label: safeText(80),

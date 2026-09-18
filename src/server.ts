@@ -55,6 +55,21 @@ app.use(express.urlencoded({ extended: true, limit: "256kb" }));
 app.use(compression());
 app.use(auditMiddleware);
 
+app.get("/", (_req: Request, res: Response) =>
+  res.status(200).json({
+    status: "ok",
+    service: "bio-cleaning-api",
+    release: APP_RELEASE,
+    message: "BIO Cleaning LLC API is running",
+    time: new Date().toISOString(),
+    endpoints: {
+      health: "/health",
+      ready: "/ready",
+      version: "/version",
+      api: "/api/v1",
+    },
+  }),
+);
 app.get("/health", (_req: Request, res: Response) => res.status(200).json({ status: "ok", service: "bio-cleaning-api", release: APP_RELEASE, time: new Date().toISOString() }));
 app.get("/ready", async (_req: Request, res: Response) => {
   const database = mongoose.connection.readyState === 1 ? "ready" : "unavailable";
