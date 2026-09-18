@@ -15,7 +15,11 @@ const createRedisClient = (): Redis | null => {
 
   try {
     if (REDIS_URL) {
-      const isTls = REDIS_URL.startsWith("rediss://");
+      let normalizedUrl = REDIS_URL.trim();
+      if (normalizedUrl.includes("upstash.io") && normalizedUrl.startsWith("redis://")) {
+        normalizedUrl = normalizedUrl.replace(/^redis:\/\//, "rediss://");
+      }
+      const isTls = normalizedUrl.startsWith("rediss://");
       const options: RedisOptions = {
         lazyConnect: true,
         maxRetriesPerRequest: 2,
@@ -34,7 +38,7 @@ const createRedisClient = (): Redis | null => {
         };
       }
 
-      return new Redis(REDIS_URL, options);
+      return new Redis(normalizedUrl, options);
     }
 
     return new Redis({

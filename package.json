@@ -16,6 +16,7 @@
     "finance:backfill": "node ./dist/scripts/backfill-finance.js",
     "finance:backfill:dev": "ts-node ./src/scripts/backfill-finance.ts",
     "typecheck": "tsc --noEmit",
+    "test:redis": "node ./scripts/test-redis.mjs",
     "test:api:smoke": "node ./scripts/regression-api.mjs",
     "backup:mongodb": "node ./scripts/backup-mongo.mjs",
     "services:backfill-slugs": "node ./dist/scripts/backfill-service-slugs.js",
