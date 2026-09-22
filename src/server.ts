@@ -35,7 +35,7 @@ const corsOptions: CorsOptions = {
 
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
-app.use(logRequestResponse);
+// app.use(logRequestResponse);
 app.use((req, res, next) => {
   res.setHeader("X-API-Version", "v1");
   res.setHeader("X-Content-Type-Options", "nosniff");

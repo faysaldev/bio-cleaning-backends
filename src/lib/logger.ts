@@ -1,18 +1,34 @@
 import winston from "winston";
-import "winston-daily-rotate-file";
 
 const production = process.env.NODE_ENV === "production";
-const fileTransport = new winston.transports.DailyRotateFile({
-  filename: "logs/server-%DATE%.log",
-  datePattern: "YYYY-MM-DD",
-  zippedArchive: true,
-  maxSize: "20m",
-  maxFiles: "7d",
-  level: "info",
-});
+const isServerless = Boolean(
+  process.env.VERCEL ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.LAMBDA_TASK_ROOT ||
+  process.env.CLOUD_RUN_JOB
+);
 
 const transports: winston.transport[] = [new winston.transports.Console()];
-if (!process.env.VERCEL && !process.env.CLOUD_RUN_JOB) transports.push(fileTransport);
+
+if (!isServerless) {
+  try {
+    require("winston-daily-rotate-file");
+    const DailyRotateFile = (winston.transports as any).DailyRotateFile;
+    if (DailyRotateFile) {
+      transports.push(
+        new DailyRotateFile({
+          filename: "logs/server-%DATE%.log",
+          datePattern: "YYYY-MM-DD",
+          zippedArchive: true,
+          maxSize: "20m",
+          maxFiles: "7d",
+        })
+      );
+    }
+  } catch {
+    // If the filesystem is read-only or rotation setup fails, fallback to console
+  }
+}
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || "info",
